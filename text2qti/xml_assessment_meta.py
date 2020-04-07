@@ -49,7 +49,7 @@ TEMPLATE = '''\
     <grading_type>points</grading_type>
     <all_day>false</all_day>
     <submission_types>online_quiz</submission_types>
-    <position>12</position>
+    <position>1</position>
     <turnitin_enabled>false</turnitin_enabled>
     <vericite_enabled>false</vericite_enabled>
     <peer_review_count>0</peer_review_count>
