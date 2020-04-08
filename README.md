@@ -47,9 +47,18 @@ b)  1
 ... Feedback for this particular answer.
 ```
 
+Essay questions are indicated by a sequence of three or more underscores.
+They do not support feedback.
+
+```
+1.  Write an essay.
+____
+````
+
 Currently there are three major limitations:
   * Images are not yet supported.
-  * Only multiple-choice and true/false questions are supported at present.
+  * Only multiple-choice, true/false, and essay questions are supported at
+    present.
   * All titles, descriptions, questions, choices, and feedback are limited to
     a single paragraph each.  If this paragraph is wrapped over multiple
     lines, all lines after the first must be indented to the same level as the
