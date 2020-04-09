@@ -9,7 +9,8 @@ subset of [siunitx](https://ctan.org/pkg/siunitx) notation for units and for
 numbers in scientific notation.
 
 
-## Example
+
+## Examples
 
 text2qti allows quick and efficient quiz creation.  Example plain-text quiz
 question that can be converted to QTI and then imported by Canvas:
@@ -74,6 +75,7 @@ Currently there are three major limitations:
     ```
 
 
+
 ## Installation
 
 Install **Python 3.6+** if it is not already available on your machine.  See
@@ -98,6 +100,7 @@ python -m pip install text2qti
 ```
 Depending on your system, you may need to use `python3` instead of `python`.
 This will often be the case for Linux and OS X.
+
 
 
 ## Usage
@@ -168,6 +171,38 @@ needed if you plan to use LaTeX math; if not, simply press ENTER to continue.
    manner compatible with Canvas, please open an issue requesting support for
    that software, and include as much information as possible about how that
    software processes LaTeX.
+
+
+
+## Additional features
+
+### Question groups
+
+A question group contains multiple questions, and only a specified number of
+these are randomly selected and used each time a quiz is taken.
+
+```
+GROUP
+pick: 1
+points per question: 1
+
+1.  A question.
+*a) true
+b)  false
+
+2.  Another question.
+*a) true
+b)  false
+
+END_GROUP
+```
+
+The number of questions from the group that are used is specified with
+`pick:`.  If this is omitted, it defaults to `1`.  The points assigned per
+question is specified with `points per question:`.  If this is omitted, it
+defaults to `1`.  All questions within a group must be worth the same number
+of points.
+
 
 
 ## Details for writing quiz text

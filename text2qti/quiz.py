@@ -36,8 +36,12 @@ start_patterns = {
     'essay': r'___+',
     'quiz_title': r'[Qq]uiz [Tt]itle:',
     'quiz_description': r'[Qq]uiz [Dd]escription:',
+    'start_group': r'GROUP',
+    'end_group': r'END_GROUP',
+    'group_pick': r'[Pp]ick:',
+    'group_points_per_question': r'[Pp]oints per question:',
 }
-no_content = set(['essay'])
+no_content = set(['essay', 'start_group', 'end_group'])
 start_re = re.compile('|'.join(r'(?P<{0}>{1}[ \t]+(?=\S))'.format(name, pattern)
                                if name not in no_content else
                                r'(?P<{0}>{1}\s*)$'.format(name, pattern)
@@ -107,14 +111,14 @@ class Question(object):
         self.incorrect_feedback_raw: Optional[str] = None
         self.incorrect_feedback_xml: Optional[str] = None
         h = hashlib.blake2b(self.question_xml.encode('utf8'))
-        self.question_hash_digest = h.digest()
+        self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
         self.md = md
 
     def append_correct_choice(self, text: str):
         if self.type is not None:
             raise Text2qtiError(f'Question type "{self.type}" does not support choices')
-        choice = Choice(text, correct=True, question_hash_digest=self.question_hash_digest, md=self.md)
+        choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
         if choice.choice_xml in self._choice_set:
             raise Text2qtiError('Duplicate choice for question')
         self._choice_set.add(choice.choice_xml)
@@ -124,7 +128,7 @@ class Question(object):
     def append_incorrect_choice(self, text: str):
         if self.type is not None:
             raise Text2qtiError(f'Question type "{self.type}" does not support choices')
-        choice = Choice(text, correct=False, question_hash_digest=self.question_hash_digest, md=self.md)
+        choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
         if choice.choice_xml in self._choice_set:
             raise Text2qtiError('Duplicate choice for question')
         self._choice_set.add(choice.choice_xml)
@@ -193,6 +197,78 @@ class Question(object):
                 raise Text2qtiError('Question must specify only one correct choice')
 
 
+class Group(object):
+    '''
+    A group of questions.  A random subset of the questions in a group is
+    actually displayed.
+    '''
+    def __init__(self):
+        self.pick = 1
+        self._pick_is_set = False
+        self.points_per_question = 1
+        self._points_per_question_is_set = False
+        self.questions: List[Question] = []
+        self._question_points_possible: Optional[int] = None
+        self.title_raw = 'Group'
+        self.title_xml = 'Group'
+
+    def append_group_pick(self, text: str):
+        if self.questions:
+            raise Text2qtiError('Question group options must be set at the very start of the group')
+        if self._pick_is_set:
+            Text2qtiError('"Pick" has already been set for this question group')
+        try:
+            self.pick = int(text)
+        except Exception as e:
+            raise Text2qtiError(f'"Pick" value is invalid (must be positive number):\n{e}')
+        if self.pick <= 0:
+            raise Text2qtiError(f'"Pick" value is invalid (must be positive number)')
+        self._pick_is_set = True
+
+    def append_group_points_per_question(self, text: str):
+        if self.questions:
+            raise Text2qtiError('Question group options must be set at the very start of the group')
+        if self._points_per_question_is_set:
+            Text2qtiError('"Points per question" has already been set for this question group')
+        try:
+            self.points_per_question = int(text)
+        except Exception as e:
+            raise Text2qtiError(f'"Points per question" value is invalid (must be positive number):\n{e}')
+        if self.points_per_question <= 0:
+            raise Text2qtiError(f'"Points per question" value is invalid (must be positive number):')
+        self._points_per_question_is_set = True
+
+    def append_question(self, question: Question):
+        if self._question_points_possible is None:
+            self._question_points_possible = question.points_possible
+        elif question.points_possible != self._question_points_possible:
+            raise Text2qtiError('Question groups must only contain questions with the same point value')
+        self.questions.append(question)
+
+    def finalize(self):
+        if len(self.questions) <= self.pick:
+            raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.pick+1}')
+        h = hashlib.blake2b()
+        for digest in sorted(q.hash_digest for q in self.questions):
+            h.update(digest)
+        self.hash_digest = h.digest()
+        self.id = h.hexdigest()[:64]
+
+class GroupStart(object):
+    '''
+    Start delim for a group of questions.
+    '''
+    def __init__(self, group: Group):
+        self.group = group
+
+class GroupEnd(object):
+    '''
+    End delim for a group of questions.
+    '''
+    def __init__(self, group: Group):
+        self.group = group
+
+
 
 
 class Quiz(object):
@@ -218,7 +294,8 @@ class Quiz(object):
         self.title_xml = 'Quiz'
         self.description_raw = None
         self.description_xml = ''
-        self.questions: List[Question] = []
+        self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd]] = []
+        self._current_group: Optional[Group] = None
         # The set for detecting duplicate questions uses the XML version of
         # the question, to avoid the issue of multiple Markdown
         # representations of the same XML.
@@ -263,24 +340,41 @@ class Quiz(object):
             if not lookahead:
                 n, line = next(n_line_iter, (0, None))
             lookahead = False
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('No questions were found')
-        try:
-            self.questions[-1].finalize()
-        except Text2qtiError as e:
-            raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\n{e}')
+        if self._current_group is not None:
+            raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\nQuestion group never ended')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if isinstance(last_question_or_delim, Question):
+            try:
+                last_question_or_delim.finalize()
+            except Text2qtiError as e:
+                raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\n{e}')
 
-        self.points_possible = sum(q.points_possible for q in self.questions)
-
+        points_possible = 0
+        digests = []
+        for x in self.questions_and_delims:
+            if isinstance(x, Question):
+                points_possible += x.points_possible
+                digests.append(x.hash_digest)
+            elif isinstance(x, GroupStart):
+                points_possible += x.group.points_per_question*len(x.group.questions)
+                digests.append(x.group.hash_digest)
+            elif isinstance(x, GroupEnd):
+                pass
+            else:
+                raise TypeError
+        self.points_possible = points_possible
         h = hashlib.blake2b()
-        for digest in sorted(x.question_hash_digest for x in self.questions):
+        for digest in sorted(digests):
             h.update(digest)
+        self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
 
     def append_quiz_title(self, text: str):
         if self.title_raw is not None:
             raise Text2qtiError('Quiz title has already been given')
-        if self.questions:
+        if self.questions_and_delims:
             raise Text2qtiError('Must give quiz title before questions')
         if self.description_raw is not None:
             raise Text2qtiError('Must give quiz title before quiz description')
@@ -290,49 +384,107 @@ class Quiz(object):
     def append_quiz_description(self, text: str):
         if self.description_raw is not None:
             raise Text2qtiError('Quiz description has already been given')
-        if self.questions:
+        if self.questions_and_delims:
             raise Text2qtiError('Must give quiz description before questions')
         self.description_raw = text
         self.description_xml = self.md.md_to_xml(text)
 
     def append_question(self, text: str):
-        if self.questions:
-            self.questions[-1].finalize()
+        if self.questions_and_delims:
+            last_question_or_delim = self.questions_and_delims[-1]
+            if isinstance(last_question_or_delim, Question):
+                last_question_or_delim.finalize()
         question = Question(text, md=self.md)
         if question.question_xml in self.question_set:
             raise Text2qtiError('Duplicate question')
         self.question_set.add(question.question_xml)
-        self.questions.append(question)
+        self.questions_and_delims.append(question)
+        if self._current_group is not None:
+            self._current_group.append_question(question)
 
     def append_correct_choice(self, text: str):
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('Cannot have a choice without a question')
-        self.questions[-1].append_correct_choice(text)
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_correct_choice(text)
 
     def append_incorrect_choice(self, text: str):
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('Cannot have a choice without a question')
-        self.questions[-1].append_incorrect_choice(text)
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_incorrect_choice(text)
 
     def append_feedback(self, text: str):
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('Cannot have feedback without a question')
-        self.questions[-1].append_feedback(text)
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have feedback without a question')
+        last_question_or_delim.append_feedback(text)
 
     def append_correct_feedback(self, text: str):
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('Cannot have feedback without a question')
-        self.questions[-1].append_correct_feedback(text)
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have feedback without a question')
+        last_question_or_delim.append_correct_feedback(text)
 
     def append_incorrect_feedback(self, text: str):
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('Cannot have feedback without a question')
-        self.questions[-1].append_incorrect_feedback(text)
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have feedback without a question')
+        last_question_or_delim.append_incorrect_feedback(text)
 
     def append_essay(self, text: str):
-        if not self.questions:
+        if not self.questions_and_delims:
             raise Text2qtiError('Cannot have an essay response without a question')
-        self.questions[-1].append_essay(text)
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have an essay response without a question')
+        last_question_or_delim.append_essay(text)
+
+    def append_start_group(self, text: str):
+        if text:
+            raise ValueError
+        if self._current_group is not None:
+            raise Text2qtiError('Question groups cannot be nested')
+        if self.questions_and_delims:
+            last_question_or_delim = self.questions_and_delims[-1]
+            if isinstance(last_question_or_delim, Question):
+                last_question_or_delim.finalize()
+        group = Group()
+        self._current_group = group
+        self.questions_and_delims.append(GroupStart(group))
+
+    def append_end_group(self, text: str):
+        if text:
+            raise ValueError
+        if self._current_group is None:
+            raise Text2qtiError('No question group to end')
+        if self.questions_and_delims:
+            last_question_or_delim = self.questions_and_delims[-1]
+            if isinstance(last_question_or_delim, Question):
+                last_question_or_delim.finalize()
+        self._current_group.finalize()
+        self.questions_and_delims.append(GroupEnd(self._current_group))
+        self._current_group = None
+
+    def append_group_pick(self, text: str):
+        if self._current_group is None:
+            raise Text2qtiError('No question group for setting properties')
+        self._current_group.append_group_pick(text)
+
+    def append_group_points_per_question(self, text: str):
+        if self._current_group is None:
+            raise Text2qtiError('No question group for setting properties')
+        self._current_group.append_group_points_per_question(text)
 
     def append_unknown(self, text: str):
         if text and not text.isspace():

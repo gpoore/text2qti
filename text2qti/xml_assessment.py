@@ -8,7 +8,7 @@
 #
 
 
-from .quiz import Quiz
+from .quiz import Quiz, Question, GroupStart, GroupEnd
 
 
 BEFORE_ITEMS = '''\
@@ -22,6 +22,22 @@ BEFORE_ITEMS = '''\
       </qtimetadatafield>
     </qtimetadata>
     <section ident="root_section">
+'''
+
+GROUP_START = '''\
+    <section ident="{ident}" title="{group_title}">
+      <selection_ordering>
+        <selection>
+          <selection_number>{pick}</selection_number>
+          <selection_extension>
+            <points_per_item>{points_per_item}</points_per_item>
+          </selection_extension>
+        </selection>
+      </selection_ordering>
+'''
+
+GROUP_END = '''\
+    </section>
 '''
 
 AFTER_ITEMS = '''\
@@ -216,7 +232,20 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
     xml = []
     xml.append(BEFORE_ITEMS.format(assessment_identifier=assessment_identifier,
                                    title=title))
-    for question in quiz.questions:
+    for question_or_delim in quiz.questions_and_delims:
+        if isinstance(question_or_delim, GroupStart):
+            xml.append(GROUP_START.format(ident=f'text2qti_group_{question_or_delim.group.id}',
+                                          group_title=question_or_delim.group.title_xml,
+                                          pick=question_or_delim.group.pick,
+                                          points_per_item=question_or_delim.group.points_per_question))
+            continue
+        if isinstance(question_or_delim, GroupEnd):
+            xml.append(GROUP_END)
+            continue
+        if not isinstance(question_or_delim, Question):
+            raise TypeError
+        question = question_or_delim
+
         xml.append(START_ITEM.format(question_identifier=f'text2qti_question_{question.id}',
                                      question_title=question.title_xml))
 
