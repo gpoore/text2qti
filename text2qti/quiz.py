@@ -15,8 +15,14 @@ of which contains a list of Choice objects.
 
 
 import hashlib
+import io
+import itertools
+import locale
 import pathlib
 import re
+import shlex
+import subprocess
+import tempfile
 from typing import List, Optional, Set, Union
 from .config import Config
 from .err import Text2qtiError
@@ -40,8 +46,10 @@ start_patterns = {
     'end_group': r'END_GROUP',
     'group_pick': r'[Pp]ick:',
     'group_points_per_question': r'[Pp]oints per question:',
+    'start_code': r'```+\s*\S.*',
+    'end_code': r'```+',
 }
-no_content = set(['essay', 'start_group', 'end_group'])
+no_content = set(['essay', 'start_group', 'end_group', 'start_code', 'end_code'])
 start_re = re.compile('|'.join(r'(?P<{0}>{1}[ \t]+(?=\S))'.format(name, pattern)
                                if name not in no_content else
                                r'(?P<{0}>{1}\s*)$'.format(name, pattern)
@@ -52,6 +60,7 @@ start_missing_content_re = re.compile('|'.join(r'(?P<{0}>{1}[ \t]*$)'.format(nam
 start_missing_whitespace_re = re.compile('|'.join(r'(?P<{0}>{1}(?=\S))'.format(name, pattern)
                                                   for name, pattern in start_patterns.items()
                                                   if name not in no_content))
+start_code_supported_info_re = re.compile(r'\{\s*\.[a-zA-Z](?:[a-zA-Z0-9]+|(?:_+|-+)[a-zA-Z0-9]+)*\s+\.run\s*\}$')
 
 
 
@@ -281,7 +290,7 @@ class Quiz(object):
                  resource_path: Optional[Union[str, pathlib.Path]]=None):
         self.string = string
         self.config = config
-        self.source_name = '<string>' if source_name is None else source_name
+        self.source_name = '<string>' if source_name is None else f'"{source_name}"'
         if resource_path is not None:
             if isinstance(resource_path, str):
                 resource_path = pathlib.Path(resource_path)
@@ -310,12 +319,41 @@ class Quiz(object):
         n_line_iter = iter(x for x in enumerate(string.splitlines()))
         n, line = next(n_line_iter, (0, None))
         lookahead = True
+        n_code_start = 0
         while line is not None:
             match = start_re.match(line)
             if match:
                 action = match.lastgroup
                 text = line[match.end():].strip()
-                if action not in no_content:
+                if action == 'start_code':
+                    info = line.lstrip('`').strip()
+                    if not start_code_supported_info_re.match(info):
+                        pass
+                    else:
+                        executable = info.replace('.run', '').strip('{} \t.')
+                        delim = '`'*(len(line) - len(line.lstrip('`')))
+                        n_code_start = n
+                        code_lines = []
+                        n, line = next(n_line_iter, (0, None))
+                        # No lookahead here; all lines are consumed
+                        while line is not None and not (line.startswith(delim) and line[len(delim):] == line.lstrip('`')):
+                            code_lines.append(line)
+                            n, line = next(n_line_iter, (0, None))
+                        if line is None:
+                            raise Text2qtiError(f'In {self.source_name} on line {n}:\nCode closing fence is missing')
+                        if line.lstrip('`').strip():
+                            raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nCode closing fence is missing')
+                        code_lines.append('\n')
+                        code = '\n'.join(code_lines)
+                        try:
+                            stdout = self._run_code(executable, code)
+                        except Exception as e:
+                            raise Text2qtiError(f'In {self.source_name} on line {n_code_start+1}:\n{e}')
+                        code_n_line_iter = ((n_code_start, stdout_line) for stdout_line in stdout.splitlines())
+                        n_line_iter = itertools.chain(code_n_line_iter, n_line_iter)
+                        n, line = next(n_line_iter, (0, None))
+                        continue
+                elif action not in no_content:
                     wrapped_expanded_indent = ' '*len(line[:len(line)-len(text)].expandtabs(4))
                     n, line = next(n_line_iter, (0, None))
                     line_expandtabs = line.expandtabs(4) if line is not None else None
@@ -334,7 +372,7 @@ class Quiz(object):
             try:
                 parse_actions[action](text)
             except Text2qtiError as e:
-                if lookahead:
+                if lookahead and n != n_code_start:
                     raise Text2qtiError(f'In {self.source_name} on line {n}:\n{e}')
                 raise Text2qtiError(f'In {self.source_name} on line {n+1}:\n{e}')
             if not lookahead:
@@ -370,6 +408,37 @@ class Quiz(object):
             h.update(digest)
         self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
+
+    def _run_code(self, executable: str, code: str) -> str:
+        if not self.config['exec_code_blocks']:
+            raise Text2qtiError('Code execution for code blocks is not enabled')
+        h = hashlib.blake2b()
+        h.update(code.encode('utf8'))
+        with tempfile.TemporaryDirectory() as tempdir:
+            tempdir_path = pathlib.Path(tempdir)
+            code_path = tempdir_path / f'{h.hexdigest()[:16]}.code'
+            code_path.write_text(code, encoding='utf8')
+            cmd = shlex.split(f'{executable} {code_path.as_posix()}')
+            try:
+                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except FileNotFoundError as e:
+                raise Text2qtiError(f'Failed to execute code (missing executable "{executable}"?):\n{e}')
+            except Exception as e:
+                raise Text2qtiError(f'Failed to execute code with command "{cmd}":\n{e}')
+        # Use io to handle output as if read from a file in terms of newline
+        # treatment
+        if proc.returncode != 0:
+            stderr_str = io.TextIOWrapper(io.BytesIO(proc.stderr),
+                                          encoding=locale.getpreferredencoding(False),
+                                          errors='backslashreplace').read()
+            raise Text2qtiError(f'Code execution resulted in errors:\n{"-"*50}\n{stderr_str}\n{"-"*50}')
+        try:
+            stdout_str = io.TextIOWrapper(io.BytesIO(proc.stdout),
+                                          encoding=locale.getpreferredencoding(False)).read()
+        except Exception as e:
+            raise Text2qtiError(f'Failed to decode output of executed code:\n{e}')
+        return stdout_str
+
 
     def append_quiz_title(self, text: str):
         if self.title_raw is not None:
@@ -486,6 +555,12 @@ class Quiz(object):
             raise Text2qtiError('No question group for setting properties')
         self._current_group.append_group_points_per_question(text)
 
+    def append_start_code(self, text: str):
+        raise Text2qtiError('Invalid code block start')
+
+    def append_end_code(self, text: str):
+        raise Text2qtiError('Code block end missing code block start')
+
     def append_unknown(self, text: str):
         if text and not text.isspace():
             match = start_missing_whitespace_re.match(text)
@@ -494,4 +569,4 @@ class Quiz(object):
             match = start_missing_content_re.match(text)
             if match:
                 raise Text2qtiError(f'Missing content after "{match.group().strip()}"')
-            raise Text2qtiError('Syntax error; unexpected text, or incorrect indentation for a wrapped paragraph')
+            raise Text2qtiError(f'Syntax error; unexpected text, or incorrect indentation for a wrapped paragraph:\n"{text}"')

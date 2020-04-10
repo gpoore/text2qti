@@ -204,6 +204,47 @@ defaults to `1`.  All questions within a group must be worth the same number
 of points.
 
 
+### Executable code blocks
+
+text2qti can execute the code in Markdown-style fenced code blocks.  Code can
+be used to generate questions within a quiz.  Everything written to stdout by
+the executed code is included in the quiz file; the code block is replaced by
+stdout.
+
+``````
+```{.python .run}
+import textwrap
+for x in [2, 3]:
+    print(textwrap.dedent(rf"""
+        1.  What is ${x}\times 5$?
+        *a) ${x*5}$
+        b)  ${x+1}$
+        """))
+```
+``````
+
+
+For code to be executed, there are a few requirements:
+* The code block fences (` ``` `) must not be indented; the code block must be
+  at the top level of the document, not part of a question, choice, or
+  feedback.
+* As a security measure, code execution is disabled by default, so executable
+  code blocks will trigger an error.  Run `text2qti` with the option
+  `--exec-code-blocks` to enable code execution, or set `exec_code_blocks =
+  true` in the text2qti config file in your user or home directory.
+* The text immediately after the opening fence must have the form `{.lang
+  .run}`.  This is inspired by the code-block attributes in [Pandoc
+  Markdown](https://pandoc.org/MANUAL.html).  `lang` must designate an
+  executable that can run the code once the code has been saved to a file.  In
+  the example above, `python` is extracted from the first line
+  (` ```{.python .run}`),  code is saved in a temporary file, and then the
+  file is executed via `python <file>`.
+
+Each code block is executed in its own process, so data and variables are not
+shared between code blocks.
+
+
+
 
 ## Details for writing quiz text
 

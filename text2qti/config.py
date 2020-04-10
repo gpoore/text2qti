@@ -25,10 +25,12 @@ class Config(dict):
     '''
     def __init__(self, *args, **kwargs):
         self.loaded_config_file = False
+        self.update(self._defaults)
         self.update(dict(*args, **kwargs))
 
-
-    _key_check = {'latex_render_url': lambda x: isinstance(x, str)}
+    _defaults = {'exec_code_blocks': False}
+    _key_check = {'latex_render_url': lambda x: isinstance(x, str),
+                  'exec_code_blocks': lambda x: isinstance(x, bool)}
     _config_path = pathlib.Path('~/.text2qti.bespon').expanduser()
 
     def __setitem__(self, key, value):
