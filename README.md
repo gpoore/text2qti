@@ -256,7 +256,7 @@ For code to be executed, there are a few requirements:
   feedback.
 * As a security measure, code execution is disabled by default, so executable
   code blocks will trigger an error.  Run `text2qti` with the option
-  `--exec-code-blocks` to enable code execution, or set `exec_code_blocks =
+  `--run-code-blocks` to enable code execution, or set `run_code_blocks =
   true` in the text2qti config file in your user or home directory.
 * The text immediately after the opening fence must have the form `{.lang
   .run}`.  This is inspired by the code-block attributes in [Pandoc

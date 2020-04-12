@@ -8,7 +8,7 @@
   chosen at random when a quiz is taken.
 * Added support for executable code blocks.  These can be used to generate
   questions automatically.  This feature requires the command-line flag
-  `--exec-code-blocks` or setting `exec_code_blocks = true` in the config
+  `--run-code-blocks` or setting `run_code_blocks = true` in the config
   file.
 * Fixed a bug that prevented source file names from appearing in error
   messages.

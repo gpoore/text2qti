@@ -475,8 +475,8 @@ class Quiz(object):
         self.id = h.hexdigest()[:64]
 
     def _run_code(self, executable: str, code: str) -> str:
-        if not self.config['exec_code_blocks']:
-            raise Text2qtiError('Code execution for code blocks is not enabled')
+        if not self.config['run_code_blocks']:
+            raise Text2qtiError('Code execution for code blocks is not enabled; use --run-code-blocks, or set run_code_blocks = true in config')
         h = hashlib.blake2b()
         h.update(code.encode('utf8'))
         with tempfile.TemporaryDirectory() as tempdir:

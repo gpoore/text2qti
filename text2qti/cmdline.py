@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--version', action='version', version=f'text2qti {version}')
     parser.add_argument('--latex-render-url',
                         help='URL for rendering LaTeX equations')
-    parser.add_argument('--exec-code-blocks', action='store_const', const=True,
+    parser.add_argument('--run-code-blocks', action='store_const', const=True,
                         help='Allow special code blocks to be executed and insert their output (off by default for security)')
     parser.add_argument('file',
                         help='File to convert from text to QTI')
@@ -57,8 +57,8 @@ def main():
             config.save()
     if args.latex_render_url is not None:
         config['latex_render_url'] = args.latex_render_url
-    if args.exec_code_blocks is not None:
-        config['exec_code_blocks'] = args.exec_code_blocks
+    if args.run_code_blocks is not None:
+        config['run_code_blocks'] = args.run_code_blocks
 
     file_path = pathlib.Path(args.file)
     try:
