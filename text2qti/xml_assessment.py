@@ -56,7 +56,7 @@ END_ITEM = '''\
 '''
 
 
-ITEM_METADATA_MCTF = '''\
+ITEM_METADATA_MCTF_NUM = '''\
         <itemmetadata>
           <qtimetadata>
             <qtimetadatafield>
@@ -79,7 +79,7 @@ ITEM_METADATA_MCTF = '''\
         </itemmetadata>
 '''
 
-ITEM_METADATA_ESSAY = ITEM_METADATA_MCTF.replace('{original_answer_ids}', '')
+ITEM_METADATA_ESSAY = ITEM_METADATA_MCTF_NUM.replace('{original_answer_ids}', '')
 
 
 ITEM_PRESENTATION_MCTF = '''\
@@ -110,6 +110,19 @@ ITEM_PRESENTATION_ESSAY = '''\
           <response_str ident="response1" rcardinality="Single">
             <render_fib>
               <response_label ident="answer1" rshuffle="No"/>
+            </render_fib>
+          </response_str>
+        </presentation>
+'''
+
+ITEM_PRESENTATION_NUM = '''\
+        <presentation>
+          <material>
+            <mattext texttype="text/html">{question_xml}</mattext>
+          </material>
+          <response_str ident="response1" rcardinality="Single">
+            <render_fib fibtype="Decimal">
+              <response_label ident="answer1"/>
             </render_fib>
           </response_str>
         </presentation>
@@ -169,6 +182,31 @@ ITEM_RESPROCESSING_MCTF_INCORRECT_FEEDBACK = '''\
           </respcondition>
 '''
 
+ITEM_RESPROCESSING_NUM_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
+
+ITEM_RESPROCESSING_NUM_SET_CORRECT_WITH_FEEDBACK = '''\
+          <respcondition continue="No">
+            <conditionvar>
+              <vargte respident="response1">{num_min}</vargte>
+              <varlte respident="response1">{num_max}</varlte>
+            </conditionvar>
+            <setvar action="Set" varname="SCORE">100</setvar>
+            <displayfeedback feedbacktype="Response" linkrefid="correct_fb"/>
+          </respcondition>
+'''
+
+ITEM_RESPROCESSING_NUM_SET_CORRECT_NO_FEEDBACK = '''\
+          <respcondition continue="No">
+            <conditionvar>
+              <vargte respident="response1">{num_min}</vargte>
+              <varlte respident="response1">{num_max}</varlte>
+            </conditionvar>
+            <setvar action="Set" varname="SCORE">100</setvar>
+          </respcondition>
+'''
+
+ITEM_RESPROCESSING_NUM_INCORRECT_FEEDBACK = ITEM_RESPROCESSING_MCTF_INCORRECT_FEEDBACK
+
 ITEM_RESPROCESSING_ESSAY = '''\
           <respcondition continue="No">
             <conditionvar>
@@ -182,7 +220,7 @@ ITEM_RESPROCESSING_END = '''\
 '''
 
 
-ITEM_FEEDBACK_MCTF_GENERAL = '''\
+ITEM_FEEDBACK_MCTF_NUM_GENERAL = '''\
         <itemfeedback ident="general_fb">
           <flow_mat>
             <material>
@@ -192,7 +230,7 @@ ITEM_FEEDBACK_MCTF_GENERAL = '''\
         </itemfeedback>
 '''
 
-ITEM_FEEDBACK_MCTF_CORRECT = '''\
+ITEM_FEEDBACK_MCTF_NUM_CORRECT = '''\
         <itemfeedback ident="correct_fb">
           <flow_mat>
             <material>
@@ -202,7 +240,7 @@ ITEM_FEEDBACK_MCTF_CORRECT = '''\
         </itemfeedback>
 '''
 
-ITEM_FEEDBACK_MCTF_INCORRECT = '''\
+ITEM_FEEDBACK_MCTF_NUM_INCORRECT = '''\
         <itemfeedback ident="general_incorrect_fb">
           <flow_mat>
             <material>
@@ -212,7 +250,7 @@ ITEM_FEEDBACK_MCTF_INCORRECT = '''\
         </itemfeedback>
 '''
 
-ITEM_FEEDBACK_MCTF_INDIVIDUAL = '''\
+ITEM_FEEDBACK_MCTF_NUM_INDIVIDUAL = '''\
         <itemfeedback ident="{ident}_fb">
           <flow_mat>
             <material>
@@ -250,14 +288,19 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
                                      question_title=question.title_xml))
 
         if question.type in ('true_false_question', 'multiple_choice_question'):
-            item_metadata = ITEM_METADATA_MCTF
+            item_metadata = ITEM_METADATA_MCTF_NUM
+            original_answer_ids = ','.join(f'text2qti_choice_{c.id}' for c in question.choices)
+        elif question.type == 'numerical_question':
+            item_metadata = ITEM_METADATA_MCTF_NUM
+            original_answer_ids = f'text2qti_numerical_{question.id}'
         elif question.type == 'essay_question':
             item_metadata = ITEM_METADATA_ESSAY
+            original_answer_ids = f'text2qti_essay_{question.id}'
         else:
             raise ValueError
         xml.append(item_metadata.format(question_type=question.type,
                                         points_possible=question.points_possible,
-                                        original_answer_ids=','.join(f'text2qti_choice_{c.id}' for c in question.choices),
+                                        original_answer_ids=original_answer_ids,
                                         assessment_question_identifierref=f'text2qti_question_ref_{question.id}'))
 
         if question.type in ('true_false_question', 'multiple_choice_question'):
@@ -265,6 +308,8 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
                                                                      for c in question.choices)
             xml.append(ITEM_PRESENTATION_MCTF.format(question_xml=question.question_xml,
                                                      choices=choices))
+        elif question.type == 'numerical_question':
+            xml.append(ITEM_PRESENTATION_NUM.format(question_xml=question.question_xml))
         elif question.type == 'essay_question':
             xml.append(ITEM_PRESENTATION_ESSAY.format(question_xml=question.question_xml))
         else:
@@ -293,6 +338,18 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
                 resprocessing.append(ITEM_RESPROCESSING_MCTF_INCORRECT_FEEDBACK)
             resprocessing.append(ITEM_RESPROCESSING_END)
             xml.extend(resprocessing)
+        elif question.type == 'numerical_question':
+            xml.append(ITEM_RESPROCESSING_START)
+            if question.feedback_raw is not None:
+              xml.append(ITEM_RESPROCESSING_NUM_GENERAL_FEEDBACK)
+            if question.correct_feedback_raw is None:
+                item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_SET_CORRECT_NO_FEEDBACK
+            else:
+                item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_SET_CORRECT_WITH_FEEDBACK
+            xml.append(item_resprocessing_num_set_correct.format(num_min=question.numerical_min_xml, num_max=question.numerical_max_xml))
+            if question.incorrect_feedback_raw is not None:
+                xml.append(ITEM_RESPROCESSING_NUM_INCORRECT_FEEDBACK)
+            xml.append(ITEM_RESPROCESSING_END)
         elif question.type == 'essay_question':
             xml.append(ITEM_RESPROCESSING_START)
             xml.append(ITEM_RESPROCESSING_ESSAY)
@@ -300,16 +357,17 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
         else:
             raise ValueError
 
-        if question.type in ('true_false_question', 'multiple_choice_question'):
+        if question.type in ('true_false_question', 'multiple_choice_question', 'numerical_question'):
             if question.feedback_raw is not None:
-                xml.append(ITEM_FEEDBACK_MCTF_GENERAL.format(feedback=question.feedback_xml))
+                xml.append(ITEM_FEEDBACK_MCTF_NUM_GENERAL.format(feedback=question.feedback_xml))
             if question.correct_feedback_raw is not None:
-                xml.append(ITEM_FEEDBACK_MCTF_CORRECT.format(feedback=question.correct_feedback_xml))
+                xml.append(ITEM_FEEDBACK_MCTF_NUM_CORRECT.format(feedback=question.correct_feedback_xml))
             if question.incorrect_feedback_raw is not None:
-                xml.append(ITEM_FEEDBACK_MCTF_INCORRECT.format(feedback=question.incorrect_feedback_xml))
+                xml.append(ITEM_FEEDBACK_MCTF_NUM_INCORRECT.format(feedback=question.incorrect_feedback_xml))
+        if question.type in ('true_false_question', 'multiple_choice_question'):
             for choice in question.choices:
                 if choice.feedback_raw is not None:
-                    xml.append(ITEM_FEEDBACK_MCTF_INDIVIDUAL.format(ident=f'text2qti_choice_{choice.id}',
+                    xml.append(ITEM_FEEDBACK_MCTF_NUM_INDIVIDUAL.format(ident=f'text2qti_choice_{choice.id}',
                                                                     feedback=choice.feedback_xml))
 
         xml.append(END_ITEM)

@@ -48,7 +48,33 @@ b)  1
 ... Feedback for this particular answer.
 ```
 
-Essay questions are indicated by a sequence of three or more underscores.
+**Numerical questions** are indicated by an equals sign followed by one or
+more spaces or tabs followed by the numerical answer.  Acceptable answers can
+be designated as a range of the form `[<min>, <max>]` or as a correct answer
+with a specified acceptable margin of error `<ans> +- <margin>`.  When the
+latter form is used, `<margin>` can be either a number or a percentage.
+`<margin>` can be omitted when the answer is an integer and an exact answer is
+required.  In this case, scientific notation is not permitted, but the
+underscore can be used as a digit separator; for example, `1000` and `1_000`
+are both valid, but `1e3` is not.  An exact answer can be required for
+floating-point numbers, but this requires an explicit `+- 0`, since a range is
+typically more appropriate for floating-point values.  Numerical questions
+have the limitation that the absolute value of the smallest acceptable answer
+must be greater than or equal to 0.0001 (1e-4).
+
+```
+1.  What is the square root of 2?
+=   1.4142 +- 0.0001
+
+2.  What is the cube root of 2?
+=   [1.2598, 1.2600]
+
+3.  What is 2+3?
+=   5
+```
+
+
+**Essay questions** are indicated by a sequence of three or more underscores.
 They do not support feedback.
 
 ```
@@ -58,8 +84,8 @@ ____
 
 Currently there are three major limitations:
   * Images are not yet supported.
-  * Only multiple-choice, true/false, and essay questions are supported at
-    present.
+  * Only multiple-choice, true/false, numerical, and essay questions are
+    supported at present.
   * All titles, descriptions, questions, choices, and feedback are limited to
     a single paragraph each.  If this paragraph is wrapped over multiple
     lines, all lines after the first must be indented to the same level as the

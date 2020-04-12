@@ -40,6 +40,7 @@ start_patterns = {
     'correct_feedback': r'\+',
     'incorrect_feedback': r'\-',
     'essay': r'___+',
+    'numerical': r'=',
     'quiz_title': r'[Qq]uiz [Tt]itle:',
     'quiz_description': r'[Qq]uiz [Dd]escription:',
     'start_group': r'GROUP',
@@ -61,7 +62,7 @@ start_missing_whitespace_re = re.compile('|'.join(r'(?P<{0}>{1}(?=\S))'.format(n
                                                   for name, pattern in start_patterns.items()
                                                   if name not in no_content))
 start_code_supported_info_re = re.compile(r'\{\s*\.[a-zA-Z](?:[a-zA-Z0-9]+|(?:_+|-+)[a-zA-Z0-9]+)*\s+\.run\s*\}$')
-
+int_re = re.compile('(?:0|[+-]?[1-9](?:[0-9]+|_[0-9]+)*)$')
 
 
 
@@ -111,6 +112,10 @@ class Question(object):
         # choices, to avoid the issue of multiple Markdown representations of
         # the same XML.
         self._choice_set: Set[str] = set()
+        self.numerical_min: Optional[Union[int, float]] = None
+        self.numerical_min_xml: Optional[str] = None
+        self.numerical_max: Optional[Union[int, float]] = None
+        self.numerical_max_xml: Optional[str] = None
         self.correct_choices = 0
         self.points_possible = 1
         self.feedback_raw: Optional[str] = None
@@ -123,6 +128,9 @@ class Question(object):
         self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
         self.md = md
+
+
+    _no_feedback_question_types = set(['essay_question'])
 
     def append_correct_choice(self, text: str):
         if self.type is not None:
@@ -145,7 +153,9 @@ class Question(object):
 
     def append_feedback(self, text: str):
         if self.type is not None:
-            raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+            if self.type in _no_feedback_question_types:
+                raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+            raise Text2qtiError('Question feedback must immediately follow the question')
         if not self.choices:
             if self.feedback_raw is not None:
                 raise Text2qtiError('Feedback can only be specified once')
@@ -156,7 +166,9 @@ class Question(object):
 
     def append_correct_feedback(self, text: str):
         if self.type is not None:
-            raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+            if self.type in _no_feedback_question_types:
+                raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+            raise Text2qtiError('Question feedback must immediately follow the question')
         if self.choices:
             raise Text2qtiError('Correct feedback can only be specified for questions, not choices')
         if self.correct_feedback_raw is not None:
@@ -166,7 +178,9 @@ class Question(object):
 
     def append_incorrect_feedback(self, text: str):
         if self.type is not None:
-            raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+            if self.type in _no_feedback_question_types:
+                raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+            raise Text2qtiError('Question feedback must immediately follow the question')
         if self.choices:
             raise Text2qtiError('Incorrect feedback can only be specified for questions, not choices')
         if self.incorrect_feedback_raw is not None:
@@ -184,11 +198,62 @@ class Question(object):
             if self.type == 'essay_question':
                 raise Text2qtiError(f'Cannot specify essay response multiple times')
             raise Text2qtiError(f'Question type "{self.type}" does not support essay response')
+        self.type = 'essay_question'
         if self.choices:
-            raise Text2qtiError(f'Question type "{self.type}" does not support choices')
+            raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         if any(x is not None for x in (self.feedback_raw, self.correct_feedback_raw, self.incorrect_feedback_raw)):
             raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
-        self.type = 'essay_question'
+
+    def append_numerical(self, text: str):
+        if self.type is not None:
+            if self.type == 'numerical_question':
+                raise Text2qtiError(f'Cannot specify numerical response multiple times')
+            raise Text2qtiError(f'Question type "{self.type}" does not support numerical response')
+        self.type = 'numerical_question'
+        if self.choices:
+            raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        if text.startswith('['):
+            if not text.endswith(']') or ',' not in text:
+                raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
+            min, max = text[1:-1].split(',', 1)
+            try:
+                min = float(min)
+                max = float(max)
+            except Exception:
+                raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
+            if min > max:
+                raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" with min < max')
+        elif '+-' in text:
+            num, margin = text.split('+-', 1)
+            if margin.endswith('%'):
+                margin_is_percentage = True
+                margin = margin[:-1]
+            else:
+                margin_is_percentage = False
+            try:
+                num = float(num)
+                margin = float(margin)
+            except Exception:
+                raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
+            if margin < 0:
+                raise Text2qtiError('Invalid numerical response; need "<number> +- <margin>" with margin > 0')
+            if margin_is_percentage:
+                min = num - abs(num)*(margin/100)
+                max = num + abs(num)*(margin/100)
+            else:
+                min = num - margin
+                max = num + margin
+        elif int_re.match(text):
+            min = max = int(text)
+        else:
+            raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
+        if abs(min) < 1e-4 or abs(max) < 1e-4:
+            raise Text2qtiError('Invalid numerical response; all acceptable values must have a magnitude >= 0.0001')
+        self.numerical_min = min
+        self.numerical_min_xml = f'{min:.4f}'
+        self.numerical_max = max
+        self.numerical_max_xml = f'{max:.4f}'
+
 
     def finalize(self):
         if self.type is None:
@@ -518,6 +583,14 @@ class Quiz(object):
         if not isinstance(last_question_or_delim, Question):
             raise Text2qtiError('Cannot have an essay response without a question')
         last_question_or_delim.append_essay(text)
+
+    def append_numerical(self, text: str):
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a numerical response without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a numerical response without a question')
+        last_question_or_delim.append_numerical(text)
 
     def append_start_group(self, text: str):
         if text:
