@@ -383,7 +383,7 @@ class Quiz(object):
         # Enhancement: revise to allow elements to span multiple paragraphs
         n_line_iter = iter(x for x in enumerate(string.splitlines()))
         n, line = next(n_line_iter, (0, None))
-        lookahead = True
+        lookahead = False
         n_code_start = 0
         while line is not None:
             match = start_re.match(line)
