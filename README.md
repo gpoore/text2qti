@@ -127,6 +127,17 @@ python -m pip install text2qti
 Depending on your system, you may need to use `python3` instead of `python`.
 This will often be the case for Linux and OS X.
 
+### Installing the development version
+
+If you want to install the development version to use the latest features,
+download `text2qti` from [GitHub](https://github.com/gpoore/text2qti), extract
+the files, and then run
+```
+python setup.py install
+```
+Depending on your system, you may need to use `python3` instead of `python`.
+This will often be the case for Linux and OS X.
+
 
 
 ## Usage
@@ -165,7 +176,11 @@ Instructions for using the QTI file with Canvas:
     processing step that can take up to several minutes.  The status will
     probably appear under "Current Jobs" after upload.
   * Once the quiz import is marked as "Completed", the imported quiz should be
-    available under Quizzes.
+    available under Quizzes.  If the imported quiz does not appear after
+    several minutes, there may be an error in your quiz file or a bug in
+    `text2qti`.  When Canvas encounters an invalid quiz file, it tends to fail
+    silently; instead of reporting an error in the quiz file, it just never
+    creates a quiz based on the invalid file.
   * You should **always preview the quiz before use**.  text2qui can detect a
     number of potential issues, but not everything.
 
@@ -262,8 +277,8 @@ For code to be executed, there are a few requirements:
   `--run-code-blocks` to enable code execution, or set `run_code_blocks =
   true` in the text2qti config file in your user or home directory.
 * The text immediately after the opening fence must have the form `{.lang
-  .run}`.  This is inspired by the code-block attributes in [Pandoc
-  Markdown](https://pandoc.org/MANUAL.html).  `lang` must designate an
+  .run}`.  This is inspired by the code-block attributes in
+  [Pandoc Markdown](https://pandoc.org/MANUAL.html).  `lang` must designate an
   executable that can run the code once the code has been saved to a file.  In
   the example above, `python` is extracted from the first line
   (` ```{.python .run}`),  code is saved in a temporary file, and then the
@@ -271,6 +286,13 @@ For code to be executed, there are a few requirements:
 
 Each code block is executed in its own process, so data and variables are not
 shared between code blocks.
+
+If an executable code block generates multiple questions that are identical,
+or multiple choices for a single question that are identical, this will be
+detected by `text2qti` and an error will be reported.  Questions or choices
+that may be equivalent, but are not represented by exactly the same text,
+cannot be detected (for example, things like `100` versus `1e2`, or `answer`
+versus `Answer`).
 
 
 
