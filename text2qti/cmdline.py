@@ -43,12 +43,17 @@ def main():
             before.  Would you like to set a default LaTeX rendering URL?  If
             no, press ENTER.  If yes, provide the URL and press ENTER.
 
-            If you use Canvas, the URL will have the form
+            If you use Canvas, the URL will be something like
                 https://<institution>.instructure.com/equation_images/
-            with "<institution>" replaced with the name or abbreviation for
+            or
+                https://canvas.<institution>.edu/equation_images/
+            with "<institution>" replaced by the name or abbreviation for
             your institution.  You can determine "<institution>" by logging
             into Canvas and then looking in the browser address bar for
-            something like "<institution>.instructure.com/".
+            something like "<institution>.instructure.com/" or
+            "canvas.<institution>.edu/".  If the address is similar to the
+            second form, you may need to change the domain from ".edu" to
+            the appropriate value for your institution.
 
             LaTeX rendering URL:  '''))
         latex_render_url = latex_render_url.strip()

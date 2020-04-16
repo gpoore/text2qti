@@ -61,11 +61,16 @@ class Config(dict):
 
     _default_config_template = textwrap.dedent('''\
         # To set a default LaTeX rendering URL for Canvas, uncomment the
-        # config line below and replace <institution> with the name or
+        # appropriate config line below and replace <institution> with the name or
         # abbreviation for your institution.  You can find this by looking at
-        # your browser address bar when logged into Canvas.
+        # your browser address bar when logged into Canvas.  In some cases, more
+        # modifications may be necessary than simply replacing <institution>.
 
+        # For Canvas through Instructure:
         # latex_render_url = "https://<institution>.instructure.com/equation_images/"
+
+        # For Canvas through your institution (may need to change ".edu" domain):
+        # latex_render_url = "https://canvas.<institution>.edu/equation_images/"
         ''')
 
     def load(self):

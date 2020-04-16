@@ -70,6 +70,10 @@ class Markdown(object):
         It will typically be of the form
 
             https://<institution>.instructure.com/equation_images/
+
+        or
+
+            https://canvas.<institution>.edu/equation_images/
         '''
         latex_render_url = self.config['latex_render_url'].rstrip('/')
         latex_xml_escaped = self.xml_escape(latex)

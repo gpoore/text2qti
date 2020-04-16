@@ -183,11 +183,14 @@ It will also ask for an institutional LaTeX rendering URL.  This is only
 needed if you plan to use LaTeX math; if not, simply press ENTER to continue.
  * If you use Canvas, log into your account and look in the browser address
    bar.  You will typically see an address that starts with something like
-   `institution.instructure.com/`, with `institution` replaced by the name of
-   your school or an abbreviation for it.  The LateX rendering URL that you
-   want to use will then be
-   `https://institution.instructure.com/equation_images/`, with `institution`
-   replaced by the appropriate value for your school.
+   `institution.instructure.com/` or `canvas.institution.edu/`, with
+   `institution` replaced by the name of your school or an abbreviation for
+   it.  The LateX rendering URL that you want to use will then be something
+   like `https://institution.instructure.com/equation_images/` or
+   `https://canvas.institution.edu/equation_images/`, with `institution`
+   replaced by the appropriate value for your school.  If the URL is like the
+   second form, you may need to replace the `.edu` domain with the appropriate
+   value for your institution.
  * If you use other educational software that handles LaTeX in a manner
    compatible with Canvas, consult the documentation for your software.  Or
    perhaps create a simple quiz within the software using its built-in tools,
