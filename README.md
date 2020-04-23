@@ -31,8 +31,8 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 [Markdown](https://daringfireball.net/projects/markdown/).
 
 There is also support for a quiz title, a quiz description, and feedback.
-Note that unlike all other text, the title and description are treated as
-plain text, not Markdown, due to the QTI format.
+Note that unlike all other text, the title is treated as plain text, not
+Markdown, due to the QTI format.
 
 ```
 Quiz title: Addition
@@ -192,7 +192,8 @@ Quiz title: Title here
 ```
 Otherwise, all quizzes will have the default title "Quiz", so it will be
 difficult to tell them apart.  Another option is to rename quizzes after
-importing them.
+importing them.  Note that unlike all other text, the title is treated as
+plain text, not Markdown, due to the QTI format.
 
 When you run `text2qti` for the first time, it will attempt to create a
 configuration file called `.text2qti.bespon` in your home or user directory.
@@ -304,11 +305,11 @@ versus `Answer`).
 text2qti processes almost all text as
 [Markdown](https://daringfireball.net/projects/markdown/), using
 [Python-Markdown](https://python-markdown.github.io/).  (The only exception is
-the quiz title and quiz description, which are processed as plain text due to
-the QTI format.)  For example, `*emphasized*` produces emphasized text, which
-typically appears as italics.  Text can be styled using Markdown notation, or
-with HTML.  Remember to preview quizzes after conversion to QTI, especially
-when using any significant amount of HTML.
+the quiz title, which is processed as plain text due to the QTI format.)  For
+example, `*emphasized*` produces emphasized text, which typically appears as
+italics.  Text can be styled using Markdown notation, or with HTML.  Remember
+to preview quizzes after conversion to QTI, especially when using any
+significant amount of HTML.
 
 All titles, descriptions, questions, choices, and feedback are limited to a
 single paragraph each.  If this paragraph is wrapped over multiple lines, all

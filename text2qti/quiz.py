@@ -367,7 +367,7 @@ class Quiz(object):
         self.title_raw = None
         self.title_xml = 'Quiz'
         self.description_raw = None
-        self.description_xml = ''
+        self.description_html_xml = ''
         self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd]] = []
         self._current_group: Optional[Group] = None
         # The set for detecting duplicate questions uses the XML version of
@@ -521,7 +521,7 @@ class Quiz(object):
         if self.questions_and_delims:
             raise Text2qtiError('Must give quiz description before questions')
         self.description_raw = text
-        self.description_xml = self.md.xml_escape(text)
+        self.description_html_xml = self.md.md_to_xml(text)
 
     def append_question(self, text: str):
         if self.questions_and_delims:

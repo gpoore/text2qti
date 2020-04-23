@@ -85,7 +85,7 @@ def assessment_meta(*,
                     assignment_group_identifier: str,
                     assignment_identifier: str,
                     title_xml: str,
-                    description_xml: str,
+                    description_html_xml: str,
                     points_possible: int) -> str:
     '''
     Generate `assessment_meta.xml`.
@@ -94,5 +94,5 @@ def assessment_meta(*,
                            assignment_identifier=assignment_identifier,
                            assignment_group_identifier=assignment_group_identifier,
                            title=title_xml,
-                           description=description_xml,
+                           description=description_html_xml,
                            points_possible=points_possible)

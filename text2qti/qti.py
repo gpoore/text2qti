@@ -33,7 +33,7 @@ class QTI(object):
         self.title_raw = quiz.title_raw
         self.title_xml = quiz.title_xml
         self.description_raw = quiz.description_raw
-        self.description_xml = quiz.description_xml
+        self.description_html_xml = quiz.description_html_xml
         self.points_possible = quiz.points_possible
 
         self.imsmanifest_xml = imsmanifest(manifest_identifier=self.manifest_identifier,
@@ -43,7 +43,7 @@ class QTI(object):
                                                assignment_identifier=self.assessment_identifier,
                                                assignment_group_identifier=self.assignment_group_identifier,
                                                title_xml=self.title_xml,
-                                               description_xml=self.description_xml,
+                                               description_html_xml=self.description_html_xml,
                                                points_possible=self.points_possible)
         self.assessment = assessment(quiz=quiz,
                                      assessment_identifier=self.assignment_identifier,
