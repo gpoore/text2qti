@@ -84,8 +84,8 @@ def assessment_meta(*,
                     assessment_identifier: str,
                     assignment_group_identifier: str,
                     assignment_identifier: str,
-                    title: str,
-                    description: str,
+                    title_xml: str,
+                    description_xml: str,
                     points_possible: int) -> str:
     '''
     Generate `assessment_meta.xml`.
@@ -93,6 +93,6 @@ def assessment_meta(*,
     return TEMPLATE.format(assessment_identifier=assessment_identifier,
                            assignment_identifier=assignment_identifier,
                            assignment_group_identifier=assignment_group_identifier,
-                           title=title,
-                           description=description,
+                           title=title_xml,
+                           description=description_xml,
                            points_possible=points_possible)

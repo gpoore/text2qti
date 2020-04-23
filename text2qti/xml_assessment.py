@@ -85,7 +85,7 @@ ITEM_METADATA_ESSAY = ITEM_METADATA_MCTF_NUM.replace('{original_answer_ids}', ''
 ITEM_PRESENTATION_MCTF = '''\
         <presentation>
           <material>
-            <mattext texttype="text/html">{question_xml}</mattext>
+            <mattext texttype="text/html">{question_html_xml}</mattext>
           </material>
           <response_lid ident="response1" rcardinality="Single">
             <render_choice>
@@ -98,14 +98,14 @@ ITEM_PRESENTATION_MCTF = '''\
 ITEM_PRESENTATION_MCTF_CHOICE = '''\
               <response_label ident="{ident}">
                 <material>
-                  <mattext texttype="text/html">{choice_xml}</mattext>
+                  <mattext texttype="text/html">{choice_html_xml}</mattext>
                 </material>
               </response_label>'''
 
 ITEM_PRESENTATION_ESSAY = '''\
         <presentation>
           <material>
-            <mattext texttype="text/html">{question_xml}</mattext>
+            <mattext texttype="text/html">{question_html_xml}</mattext>
           </material>
           <response_str ident="response1" rcardinality="Single">
             <render_fib>
@@ -118,7 +118,7 @@ ITEM_PRESENTATION_ESSAY = '''\
 ITEM_PRESENTATION_NUM = '''\
         <presentation>
           <material>
-            <mattext texttype="text/html">{question_xml}</mattext>
+            <mattext texttype="text/html">{question_html_xml}</mattext>
           </material>
           <response_str ident="response1" rcardinality="Single">
             <render_fib fibtype="Decimal">
@@ -263,13 +263,13 @@ ITEM_FEEDBACK_MCTF_NUM_INDIVIDUAL = '''\
 
 
 
-def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
+def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str:
     '''
     Generate assessment XML from Quiz.
     '''
     xml = []
     xml.append(BEFORE_ITEMS.format(assessment_identifier=assessment_identifier,
-                                   title=title))
+                                   title=title_xml))
     for question_or_delim in quiz.questions_and_delims:
         if isinstance(question_or_delim, GroupStart):
             xml.append(GROUP_START.format(ident=f'text2qti_group_{question_or_delim.group.id}',
@@ -304,14 +304,14 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
                                         assessment_question_identifierref=f'text2qti_question_ref_{question.id}'))
 
         if question.type in ('true_false_question', 'multiple_choice_question'):
-            choices = '\n'.join(ITEM_PRESENTATION_MCTF_CHOICE.format(ident=f'text2qti_choice_{c.id}', choice_xml=c.choice_xml)
+            choices = '\n'.join(ITEM_PRESENTATION_MCTF_CHOICE.format(ident=f'text2qti_choice_{c.id}', choice_html_xml=c.choice_html_xml)
                                                                      for c in question.choices)
-            xml.append(ITEM_PRESENTATION_MCTF.format(question_xml=question.question_xml,
+            xml.append(ITEM_PRESENTATION_MCTF.format(question_html_xml=question.question_html_xml,
                                                      choices=choices))
         elif question.type == 'numerical_question':
-            xml.append(ITEM_PRESENTATION_NUM.format(question_xml=question.question_xml))
+            xml.append(ITEM_PRESENTATION_NUM.format(question_html_xml=question.question_html_xml))
         elif question.type == 'essay_question':
-            xml.append(ITEM_PRESENTATION_ESSAY.format(question_xml=question.question_xml))
+            xml.append(ITEM_PRESENTATION_ESSAY.format(question_html_xml=question.question_html_xml))
         else:
             raise ValueError
 
@@ -346,7 +346,7 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
                 item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_SET_CORRECT_NO_FEEDBACK
             else:
                 item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_SET_CORRECT_WITH_FEEDBACK
-            xml.append(item_resprocessing_num_set_correct.format(num_min=question.numerical_min_xml, num_max=question.numerical_max_xml))
+            xml.append(item_resprocessing_num_set_correct.format(num_min=question.numerical_min_html_xml, num_max=question.numerical_max_html_xml))
             if question.incorrect_feedback_raw is not None:
                 xml.append(ITEM_RESPROCESSING_NUM_INCORRECT_FEEDBACK)
             xml.append(ITEM_RESPROCESSING_END)
@@ -359,16 +359,16 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title: str) -> str:
 
         if question.type in ('true_false_question', 'multiple_choice_question', 'numerical_question'):
             if question.feedback_raw is not None:
-                xml.append(ITEM_FEEDBACK_MCTF_NUM_GENERAL.format(feedback=question.feedback_xml))
+                xml.append(ITEM_FEEDBACK_MCTF_NUM_GENERAL.format(feedback=question.feedback_html_xml))
             if question.correct_feedback_raw is not None:
-                xml.append(ITEM_FEEDBACK_MCTF_NUM_CORRECT.format(feedback=question.correct_feedback_xml))
+                xml.append(ITEM_FEEDBACK_MCTF_NUM_CORRECT.format(feedback=question.correct_feedback_html_xml))
             if question.incorrect_feedback_raw is not None:
-                xml.append(ITEM_FEEDBACK_MCTF_NUM_INCORRECT.format(feedback=question.incorrect_feedback_xml))
+                xml.append(ITEM_FEEDBACK_MCTF_NUM_INCORRECT.format(feedback=question.incorrect_feedback_html_xml))
         if question.type in ('true_false_question', 'multiple_choice_question'):
             for choice in question.choices:
                 if choice.feedback_raw is not None:
                     xml.append(ITEM_FEEDBACK_MCTF_NUM_INDIVIDUAL.format(ident=f'text2qti_choice_{choice.id}',
-                                                                    feedback=choice.feedback_xml))
+                                                                    feedback=choice.feedback_html_xml))
 
         xml.append(END_ITEM)
 

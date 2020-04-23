@@ -30,8 +30,10 @@ class QTI(object):
         self.dependency_identifier = f'{id_base}_dependency_{quiz.id}'
         self.assignment_identifier = f'{id_base}_assignment_{quiz.id}'
         self.assignment_group_identifier = f'{id_base}_assignment-group_{quiz.id}'
-        self.title = quiz.title_xml
-        self.description = quiz.description_xml
+        self.title_raw = quiz.title_raw
+        self.title_xml = quiz.title_xml
+        self.description_raw = quiz.description_raw
+        self.description_xml = quiz.description_xml
         self.points_possible = quiz.points_possible
 
         self.imsmanifest_xml = imsmanifest(manifest_identifier=self.manifest_identifier,
@@ -40,12 +42,12 @@ class QTI(object):
         self.assessment_meta = assessment_meta(assessment_identifier=self.assessment_identifier,
                                                assignment_identifier=self.assessment_identifier,
                                                assignment_group_identifier=self.assignment_group_identifier,
-                                               title=self.title,
-                                               description=self.description,
+                                               title_xml=self.title_xml,
+                                               description_xml=self.description_xml,
                                                points_possible=self.points_possible)
         self.assessment = assessment(quiz=quiz,
                                      assessment_identifier=self.assignment_identifier,
-                                     title=self.title)
+                                     title_xml=self.title_xml)
 
 
     def write(self, bytes_stream: BinaryIO):

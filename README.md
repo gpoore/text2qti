@@ -30,7 +30,9 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 ("`*c) `").  All question and choice text is processed as
 [Markdown](https://daringfireball.net/projects/markdown/).
 
-There is also support for a quiz title, a quiz description, and feedback:
+There is also support for a quiz title, a quiz description, and feedback.
+Note that unlike all other text, the title and description are treated as
+plain text, not Markdown, due to the QTI format.
 
 ```
 Quiz title: Addition
@@ -181,7 +183,7 @@ Instructions for using the QTI file with Canvas:
     `text2qti`.  When Canvas encounters an invalid quiz file, it tends to fail
     silently; instead of reporting an error in the quiz file, it just never
     creates a quiz based on the invalid file.
-  * You should **always preview the quiz before use**.  text2qui can detect a
+  * You should **always preview the quiz before use**.  text2qti can detect a
     number of potential issues, but not everything.
 
 Typically, you should start your quizzes with a title, like this:
@@ -299,13 +301,14 @@ versus `Answer`).
 
 ## Details for writing quiz text
 
-text2qti processes all text as
+text2qti processes almost all text as
 [Markdown](https://daringfireball.net/projects/markdown/), using
-[Python-Markdown](https://python-markdown.github.io/).  For example,
-`*emphasized*` produces emphasized text, which typically appears as italics.
-Text can be styled using Markdown notation, or with HTML.  Remember to preview
-quizzes after conversion to QTI, especially when using any significant amount
-of HTML.
+[Python-Markdown](https://python-markdown.github.io/).  (The only exception is
+the quiz title and quiz description, which are processed as plain text due to
+the QTI format.)  For example, `*emphasized*` produces emphasized text, which
+typically appears as italics.  Text can be styled using Markdown notation, or
+with HTML.  Remember to preview quizzes after conversion to QTI, especially
+when using any significant amount of HTML.
 
 All titles, descriptions, questions, choices, and feedback are limited to a
 single paragraph each.  If this paragraph is wrapped over multiple lines, all

@@ -76,20 +76,20 @@ class Choice(object):
     def __init__(self, text: str, *,
                  correct: bool, question_hash_digest: bytes, md: Markdown):
         self.choice_raw = text
-        self.choice_xml = md.md_to_xml(text)
+        self.choice_html_xml = md.md_to_xml(text)
         self.correct = correct
         self.feedback_raw: Optional[str] = None
-        self.feedback_xml: Optional[str] = None
+        self.feedback_html_xml: Optional[str] = None
         # ID is based on hash of choice XML as well as question XML.  This
         # gives different IDs for identical choices in different questions.
-        self.id = hashlib.blake2b(self.choice_xml.encode('utf8'), key=question_hash_digest).hexdigest()[:64]
+        self.id = hashlib.blake2b(self.choice_html_xml.encode('utf8'), key=question_hash_digest).hexdigest()[:64]
         self.md = md
 
     def append_feedback(self, text: str):
         if self.feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.feedback_raw = text
-        self.feedback_xml = self.md.md_to_xml(text)
+        self.feedback_html_xml = self.md.md_to_xml(text)
 
 
 class Question(object):
@@ -103,28 +103,28 @@ class Question(object):
         # available.  For essay, this is done as soon as essay response is
         # specified.
         self.type: Optional[str] = None
-        self.title_raw = 'Question'
+        self.title_raw: Optional[str] = None
         self.title_xml = 'Question'
         self.question_raw = text
-        self.question_xml = md.md_to_xml(text)
+        self.question_html_xml = md.md_to_xml(text)
         self.choices: List[Choice] = []
         # The set for detecting duplicate choices uses the XML version of the
         # choices, to avoid the issue of multiple Markdown representations of
         # the same XML.
         self._choice_set: Set[str] = set()
         self.numerical_min: Optional[Union[int, float]] = None
-        self.numerical_min_xml: Optional[str] = None
+        self.numerical_min_html_xml: Optional[str] = None
         self.numerical_max: Optional[Union[int, float]] = None
-        self.numerical_max_xml: Optional[str] = None
+        self.numerical_max_html_xml: Optional[str] = None
         self.correct_choices = 0
         self.points_possible = 1
         self.feedback_raw: Optional[str] = None
-        self.feedback_xml: Optional[str] = None
+        self.feedback_html_xml: Optional[str] = None
         self.correct_feedback_raw: Optional[str] = None
-        self.correct_feedback_xml: Optional[str] = None
+        self.correct_feedback_html_xml: Optional[str] = None
         self.incorrect_feedback_raw: Optional[str] = None
-        self.incorrect_feedback_xml: Optional[str] = None
-        h = hashlib.blake2b(self.question_xml.encode('utf8'))
+        self.incorrect_feedback_html_xml: Optional[str] = None
+        h = hashlib.blake2b(self.question_html_xml.encode('utf8'))
         self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
         self.md = md
@@ -136,9 +136,9 @@ class Question(object):
         if self.type is not None:
             raise Text2qtiError(f'Question type "{self.type}" does not support choices')
         choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
-        if choice.choice_xml in self._choice_set:
+        if choice.choice_html_xml in self._choice_set:
             raise Text2qtiError('Duplicate choice for question')
-        self._choice_set.add(choice.choice_xml)
+        self._choice_set.add(choice.choice_html_xml)
         self.choices.append(choice)
         self.correct_choices += 1
 
@@ -146,27 +146,27 @@ class Question(object):
         if self.type is not None:
             raise Text2qtiError(f'Question type "{self.type}" does not support choices')
         choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
-        if choice.choice_xml in self._choice_set:
+        if choice.choice_html_xml in self._choice_set:
             raise Text2qtiError('Duplicate choice for question')
-        self._choice_set.add(choice.choice_xml)
+        self._choice_set.add(choice.choice_html_xml)
         self.choices.append(choice)
 
     def append_feedback(self, text: str):
         if self.type is not None:
-            if self.type in _no_feedback_question_types:
+            if self.type in self._no_feedback_question_types:
                 raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
             raise Text2qtiError('Question feedback must immediately follow the question')
         if not self.choices:
             if self.feedback_raw is not None:
                 raise Text2qtiError('Feedback can only be specified once')
             self.feedback_raw = text
-            self.feedback_xml = self.md.md_to_xml(text)
+            self.feedback_html_xml = self.md.md_to_xml(text)
         else:
             self.choices[-1].append_feedback(text)
 
     def append_correct_feedback(self, text: str):
         if self.type is not None:
-            if self.type in _no_feedback_question_types:
+            if self.type in self._no_feedback_question_types:
                 raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
             raise Text2qtiError('Question feedback must immediately follow the question')
         if self.choices:
@@ -174,11 +174,11 @@ class Question(object):
         if self.correct_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.correct_feedback_raw = text
-        self.correct_feedback_xml = self.md.md_to_xml(text)
+        self.correct_feedback_html_xml = self.md.md_to_xml(text)
 
     def append_incorrect_feedback(self, text: str):
         if self.type is not None:
-            if self.type in _no_feedback_question_types:
+            if self.type in self._no_feedback_question_types:
                 raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
             raise Text2qtiError('Question feedback must immediately follow the question')
         if self.choices:
@@ -186,7 +186,7 @@ class Question(object):
         if self.incorrect_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.incorrect_feedback_raw = text
-        self.incorrect_feedback_xml = self.md.md_to_xml(text)
+        self.incorrect_feedback_html_xml = self.md.md_to_xml(text)
 
     def append_essay(self, text: str):
         if text:
@@ -250,9 +250,9 @@ class Question(object):
         if abs(min) < 1e-4 or abs(max) < 1e-4:
             raise Text2qtiError('Invalid numerical response; all acceptable values must have a magnitude >= 0.0001')
         self.numerical_min = min
-        self.numerical_min_xml = f'{min:.4f}'
+        self.numerical_min_html_xml = f'{min:.4f}'
         self.numerical_max = max
-        self.numerical_max_xml = f'{max:.4f}'
+        self.numerical_max_html_xml = f'{max:.4f}'
 
 
     def finalize(self):
@@ -283,7 +283,7 @@ class Group(object):
         self._points_per_question_is_set = False
         self.questions: List[Question] = []
         self._question_points_possible: Optional[int] = None
-        self.title_raw = 'Group'
+        self.title_raw: Optional[str] = None
         self.title_xml = 'Group'
 
     def append_group_pick(self, text: str):
@@ -513,7 +513,7 @@ class Quiz(object):
         if self.description_raw is not None:
             raise Text2qtiError('Must give quiz title before quiz description')
         self.title_raw = text
-        self.title_xml = self.md.md_to_xml(text, strip_p_tags=True)
+        self.title_xml = self.md.xml_escape(text)
 
     def append_quiz_description(self, text: str):
         if self.description_raw is not None:
@@ -521,7 +521,7 @@ class Quiz(object):
         if self.questions_and_delims:
             raise Text2qtiError('Must give quiz description before questions')
         self.description_raw = text
-        self.description_xml = self.md.md_to_xml(text)
+        self.description_xml = self.md.xml_escape(text)
 
     def append_question(self, text: str):
         if self.questions_and_delims:
@@ -529,9 +529,9 @@ class Quiz(object):
             if isinstance(last_question_or_delim, Question):
                 last_question_or_delim.finalize()
         question = Question(text, md=self.md)
-        if question.question_xml in self.question_set:
+        if question.question_html_xml in self.question_set:
             raise Text2qtiError('Duplicate question')
-        self.question_set.add(question.question_xml)
+        self.question_set.add(question.question_html_xml)
         self.questions_and_delims.append(question)
         if self._current_group is not None:
             self._current_group.append_question(question)

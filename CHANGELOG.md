@@ -10,6 +10,8 @@
   questions automatically.  This feature requires the command-line flag
   `--run-code-blocks` or setting `run_code_blocks = true` in the config
   file.
+* Quiz titles and descriptions are now processed as plain text, rather than as
+  Markdown, because QTI does not support HTML titles and descriptions.
 * Fixed a bug that prevented source file names from appearing in error
   messages.
 
