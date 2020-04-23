@@ -84,23 +84,10 @@ They do not support feedback.
 ____
 ````
 
-Currently there are three major limitations:
+Currently there are two major limitations:
   * Images are not yet supported.
   * Only multiple-choice, true/false, numerical, and essay questions are
     supported at present.
-  * All titles, descriptions, questions, choices, and feedback are limited to
-    a single paragraph each.  If this paragraph is wrapped over multiple
-    lines, all lines after the first must be indented to the same level as the
-    start of the paragraph text on the initial line (so, indented as much as
-    the "`1. `" or "`a) `", etc.).  All tabs are expanded to 4 spaces before
-    indentation is compared, following the typical Markdown approach.
-    Multiple paragraphs will likely be enabled at some point in the future.
-    ```
-    1.  A question paragraph that is long enough to wrap onto a second line.
-        The second line must be indented to match up with the start of the
-        paragraph text on the first line.  Multiple paragraphs are not yet
-        supported.
-    ```
 
 
 
@@ -311,10 +298,25 @@ italics.  Text can be styled using Markdown notation, or with HTML.  Remember
 to preview quizzes after conversion to QTI, especially when using any
 significant amount of HTML.
 
-All titles, descriptions, questions, choices, and feedback are limited to a
-single paragraph each.  If this paragraph is wrapped over multiple lines, all
-lines after the first must be indented to the same level as the start of the
-paragraph text on the initial line
+Titles are limited to a single paragraph.  If this paragraph is wrapped over
+multiple lines, all lines after the first must be indented to the same level
+as the start of the paragraph text on the initial line.  All tabs are expanded
+to 4 spaces before indentation is compared, following the typical Markdown
+approach.
+
+Descriptions, questions, choices, and feedback may span multiple paragraphs
+and include arbitrary Markdown content like code blocks or quotations.
+Everything must be indented to at least the same level as the start of the
+first paragraph on the initial line.  All tabs are expanded to 4 spaces before
+indentation is compared, following the typical Markdown approach.  For
+example,
+```
+1.  A question paragraph that is long enough to wrap onto a second line.
+    The second line must be indented to match up with the start of the
+    paragraph text on the first line.
+
+    Another paragraph.
+```
 
 text2qti supports inline LaTeX math within dollar signs `$`.  There must be a
 non-space character immediately after the opening `$` and immediately before

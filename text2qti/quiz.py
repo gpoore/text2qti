@@ -51,6 +51,8 @@ start_patterns = {
     'end_code': r'```+',
 }
 no_content = set(['essay', 'start_group', 'end_group', 'start_code', 'end_code'])
+multi_para = set([x for x in start_patterns
+                  if x not in no_content and not any(y in x for y in ('title', 'pick', 'points', 'numerical'))])
 start_re = re.compile('|'.join(r'(?P<{0}>{1}[ \t]+(?=\S))'.format(name, pattern)
                                if name not in no_content else
                                r'(?P<{0}>{1}\s*)$'.format(name, pattern)
@@ -419,18 +421,26 @@ class Quiz(object):
                         n, line = next(n_line_iter, (0, None))
                         continue
                 elif action not in no_content:
-                    wrapped_expanded_indent = ' '*len(line[:len(line)-len(text)].expandtabs(4))
+                    indent_expandtabs = ' '*len(line[:len(line)-len(text)].expandtabs(4))
+                    text_lines = [text]
                     n, line = next(n_line_iter, (0, None))
                     line_expandtabs = line.expandtabs(4) if line is not None else None
                     lookahead = True
-                    while (line is not None and
-                            line_expandtabs.startswith(wrapped_expanded_indent) and
-                            line_expandtabs[len(wrapped_expanded_indent):len(wrapped_expanded_indent)+1] not in ('', ' ', '\t')):
-                        if not text.endswith(' '):
-                            text += ' '
-                        text += line_expandtabs[len(wrapped_expanded_indent):]
-                        n, line = next(n_line_iter, (0, None))
-                        line_expandtabs = line.expandtabs(4) if line is not None else None
+                    if action in multi_para:
+                        while (line is not None and
+                                (not line or line.isspace() or line_expandtabs.startswith(indent_expandtabs))):
+                            text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
+                            n, line = next(n_line_iter, (0, None))
+                            line_expandtabs = line.expandtabs(4) if line is not None else None
+                        text = '\n'.join(text_lines)
+                    else:
+                        while (line is not None and
+                                line_expandtabs.startswith(indent_expandtabs) and
+                                line_expandtabs[len(indent_expandtabs):len(indent_expandtabs)+1] not in ('', ' ', '\t')):
+                            text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
+                            n, line = next(n_line_iter, (0, None))
+                            line_expandtabs = line.expandtabs(4) if line is not None else None
+                        text = ' '.join(text_lines)
             else:
                 action = None
                 text = line

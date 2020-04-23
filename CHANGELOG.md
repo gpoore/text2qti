@@ -2,6 +2,8 @@
 
 ## v0.2.0 (2020-??-??)
 
+* Added support for multi-paragraph descriptions, questions, choices, and
+  feedback.
 * Added support for essay questions.
 * Added support for numerical questions.
 * Added support for question groups.  A subset of the questions in a group is

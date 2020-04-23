@@ -219,7 +219,7 @@ class Markdown(object):
 
 
     inline_code_pattern = r'(?P<code>(?<!`)(?P<code_delim>`+)(?!`).+?(?<!`)(?P=code_delim)(?!`))'
-    inline_math_pattern = r'(?<!\$)\$(?P<math>[^ $][^$]*)(?<! )\$(?!\$)'
+    inline_math_pattern = r'(?<!\$)\$(?!\$)(?P<math>[^ \t\n](?:[^$\n]+|\n[ \t]*[^$\n]+)*)(?<![ \t\n])\$(?!\$)'
     inline_code_math_siunitx_re = re.compile('|'.join([inline_code_pattern,
                                                        inline_math_pattern,
                                                        siunitx_latex_macros_pattern]))
@@ -234,6 +234,7 @@ class Markdown(object):
             return match.group('code')
         if lastgroup == 'math':
             math = match.group('math')
+            math = math.replace('\n ', ' ').replace('\n', ' ')
             math = self.sub_siunitx_to_plain_latex(math, in_math=True)
             return self.latex_to_canvas_img(math)
         if lastgroup == 'SI_unit':
