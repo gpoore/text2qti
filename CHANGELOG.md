@@ -1,6 +1,6 @@
 # Change Log
 
-## v0.2.0 (2020-??-??)
+## v0.2.0 (2020-04-23)
 
 * Added support for images, using standard Markdown syntax.
 * Added support for multi-paragraph descriptions, questions, choices, and
