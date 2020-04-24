@@ -23,10 +23,10 @@ import re
 import shlex
 import subprocess
 import tempfile
-from typing import List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 from .config import Config
 from .err import Text2qtiError
-from .markdown import Markdown
+from .markdown import Image, Markdown
 
 
 
@@ -68,6 +68,7 @@ int_re = re.compile('(?:0|[+-]?[1-9](?:[0-9]+|_[0-9]+)*)$')
 
 
 
+
 class Choice(object):
     '''
     A choice for a question plus optional feedback.
@@ -78,7 +79,7 @@ class Choice(object):
     def __init__(self, text: str, *,
                  correct: bool, question_hash_digest: bytes, md: Markdown):
         self.choice_raw = text
-        self.choice_html_xml = md.md_to_xml(text)
+        self.choice_html_xml = md.md_to_html_xml(text)
         self.correct = correct
         self.feedback_raw: Optional[str] = None
         self.feedback_html_xml: Optional[str] = None
@@ -91,7 +92,7 @@ class Choice(object):
         if self.feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.feedback_raw = text
-        self.feedback_html_xml = self.md.md_to_xml(text)
+        self.feedback_html_xml = self.md.md_to_html_xml(text)
 
 
 class Question(object):
@@ -108,7 +109,7 @@ class Question(object):
         self.title_raw: Optional[str] = None
         self.title_xml = 'Question'
         self.question_raw = text
-        self.question_html_xml = md.md_to_xml(text)
+        self.question_html_xml = md.md_to_html_xml(text)
         self.choices: List[Choice] = []
         # The set for detecting duplicate choices uses the XML version of the
         # choices, to avoid the issue of multiple Markdown representations of
@@ -162,7 +163,7 @@ class Question(object):
             if self.feedback_raw is not None:
                 raise Text2qtiError('Feedback can only be specified once')
             self.feedback_raw = text
-            self.feedback_html_xml = self.md.md_to_xml(text)
+            self.feedback_html_xml = self.md.md_to_html_xml(text)
         else:
             self.choices[-1].append_feedback(text)
 
@@ -176,7 +177,7 @@ class Question(object):
         if self.correct_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.correct_feedback_raw = text
-        self.correct_feedback_html_xml = self.md.md_to_xml(text)
+        self.correct_feedback_html_xml = self.md.md_to_html_xml(text)
 
     def append_incorrect_feedback(self, text: str):
         if self.type is not None:
@@ -188,7 +189,7 @@ class Question(object):
         if self.incorrect_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.incorrect_feedback_raw = text
-        self.incorrect_feedback_html_xml = self.md.md_to_xml(text)
+        self.incorrect_feedback_html_xml = self.md.md_to_html_xml(text)
 
     def append_essay(self, text: str):
         if text:
@@ -377,6 +378,7 @@ class Quiz(object):
         # representations of the same XML.
         self.question_set: Set[str] = set()
         self.md = Markdown(config)
+        self.images: Dict[str, Image] = self.md.images
 
         parse_actions = {}
         for k in start_patterns:
@@ -531,7 +533,7 @@ class Quiz(object):
         if self.questions_and_delims:
             raise Text2qtiError('Must give quiz description before questions')
         self.description_raw = text
-        self.description_html_xml = self.md.md_to_xml(text)
+        self.description_html_xml = self.md.md_to_html_xml(text)
 
     def append_question(self, text: str):
         if self.questions_and_delims:

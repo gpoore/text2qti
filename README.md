@@ -4,6 +4,7 @@ text2qti converts
 [Markdown](https://daringfireball.net/projects/markdown/)-based plain text
 files into quizzes in QTI format, which can be imported by
 [Canvas](https://www.instructure.com/canvas/) and other educational software.
+It supports multiple-choice, true/false, numerical, and essay questions.
 It includes basic support for LaTeX math within Markdown, and allows a limited
 subset of [siunitx](https://ctan.org/pkg/siunitx) notation for units and for
 numbers in scientific notation.
@@ -84,11 +85,6 @@ They do not support feedback.
 ____
 ````
 
-Currently there are two major limitations:
-  * Images are not yet supported.
-  * Only multiple-choice, true/false, numerical, and essay questions are
-    supported at present.
-
 
 
 ## Installation
@@ -115,6 +111,16 @@ python -m pip install text2qti
 ```
 Depending on your system, you may need to use `python3` instead of `python`.
 This will often be the case for Linux and OS X.
+
+
+### Upgrading
+
+```
+python -m pip install text2qti --upgrade
+```
+Depending on your system, you may need to use `python3` instead of `python`.
+This will often be the case for Linux and OS X.
+
 
 ### Installing the development version
 
@@ -298,11 +304,17 @@ italics.  Text can be styled using Markdown notation, or with HTML.  Remember
 to preview quizzes after conversion to QTI, especially when using any
 significant amount of HTML.
 
+
+### Titles
+
 Titles are limited to a single paragraph.  If this paragraph is wrapped over
 multiple lines, all lines after the first must be indented to the same level
 as the start of the paragraph text on the initial line.  All tabs are expanded
 to 4 spaces before indentation is compared, following the typical Markdown
 approach.
+
+
+### Descriptions, questions, choices, and feedback
 
 Descriptions, questions, choices, and feedback may span multiple paragraphs
 and include arbitrary Markdown content like code blocks or quotations.
@@ -317,6 +329,23 @@ example,
 
     Another paragraph.
 ```
+
+
+### Images
+
+Images are included with the standard Markdown syntax:
+```
+![alt_text](image_file)
+```
+It will typically be easiest to put your image files in the same folder or
+directory as the quiz file, so you can use something like `![alt](image.jpg)`.
+However, file paths are supported, including `~` user expansion under all
+operating systems.  All image paths not starting with `http://` or `https://`
+are assumed to refer to local image files (files on your machine), and will
+result in errors if these files are not found.
+
+
+### LaTeX
 
 text2qti supports inline LaTeX math within dollar signs `$`.  There must be a
 non-space character immediately after the opening `$` and immediately before

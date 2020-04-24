@@ -8,12 +8,82 @@
 #
 
 
-import markdown
+import hashlib
+import pathlib
 import re
-import urllib.parse
 import typing
+from typing import Dict, Set
+import urllib.parse
+import markdown
+from markdown.inlinepatterns import ImageInlineProcessor, IMAGE_LINK_RE
 from .config import Config
 from .err import Text2qtiError
+
+
+
+
+class Image(object):
+    '''
+    Raw image data for quiz insertion.
+    '''
+    def __init__(self, name: str, data: bytes):
+        self.name = name
+        self.data = data
+        h = hashlib.blake2b()
+        h.update(data)
+        self.id = h.hexdigest()[:64]
+
+    @property
+    def src_path(self):
+        return f'%24IMS-CC-FILEBASE%24/images/{urllib.parse.quote(self.name)}'
+
+    @property
+    def qti_zip_path(self):
+        return f'images/{self.name}'
+
+    @property
+    def qti_xml_path(self):
+        return f'images/{urllib.parse.quote(self.name)}'
+
+
+
+
+class Text2qtiImagePattern(ImageInlineProcessor):
+    '''
+    Custom image processor for Python-Markdown that modifies local image
+    paths to their final QTI form and also accumulates all image data for QTI
+    inclusion.
+    '''
+    def __init__(self, pattern_re, markdown_md, text2qti_md):
+        super().__init__(pattern_re, markdown_md)
+        self.text2qti_md = text2qti_md
+
+    def handleMatch(self, match, data):
+        node, start, end = super().handleMatch(match, data)
+        src = node.attrib.get('src')
+        if src and not any(src.startswith(x) for x in ('http://', 'https://')):
+            src_path = pathlib.Path(src).expanduser()
+            try:
+                data = src_path.read_bytes()
+            except FileNotFoundError:
+                raise Text2qtiError(f'File "{src_path}" does not exist')
+            except PermissionError as e:
+                raise Text2qtiError(f'File "{src_path}" cannot be read due to permission error:\n{e}')
+            image = Image(src_path.name, data)
+            if image.id in self.text2qti_md.images:
+                image = self.text2qti_md.images[image.id]
+            else:
+                if image.name in self.text2qti_md.image_name_set:
+                    n = 8
+                    while image.name in self.text2qti_md.image_name_set:
+                        image.name = f'{src_path.stem}_{image.id[:n]}{src_path.suffix}'
+                        n *= 2
+                        if n >= len(image.id)*2:
+                            raise Text2qtiError('Hash collision occurred during image deduplication')
+                self.text2qti_md.image_name_set.add(image.name)
+                self.text2qti_md.images[image.id] = image
+            node.attrib['src'] = image.src_path
+        return node, start, end
 
 
 
@@ -31,6 +101,13 @@ class Markdown(object):
     '''
     def __init__(self, config: Config):
         self.config = config
+        md_extensions = ['smarty', 'sane_lists', 'def_list', 'fenced_code', 'footnotes', 'tables']
+        markdown_processor = markdown.Markdown(extensions=md_extensions)
+        markdown_image_processor = Text2qtiImagePattern(IMAGE_LINK_RE, markdown_processor, self)
+        markdown_processor.inlinePatterns.register(markdown_image_processor, 'image_link', 150)
+        self.markdown_processor = markdown_processor
+        self.images: Dict[str, Image] = {}
+        self.image_name_set: Set[str] = set()
 
 
     XML_ESCAPES = (('&', '&amp;'),
@@ -252,10 +329,11 @@ class Markdown(object):
         '''
         return self.inline_code_math_siunitx_re.sub(self._inline_code_math_siunitx_dispatch, string)
 
-
-    markdown_processor = markdown.Markdown(extensions=['smarty', 'sane_lists'])
-
-    def md_to_xml(self, markdown_string: str, strip_p_tags: bool=False) -> str:
+    def md_to_html_xml(self, markdown_string: str, strip_p_tags: bool=False) -> str:
+        '''
+        Convert the Markdown in a string to HTML, then escape the HTML for
+        embedding in XML.
+        '''
         markdown_string_processed_latex = self.sub_math_siunitx_to_canvas_img(markdown_string)
         try:
             html = self.markdown_processor.reset().convert(markdown_string_processed_latex)

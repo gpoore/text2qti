@@ -9,6 +9,7 @@
 
 
 import argparse
+import os
 import pathlib
 import textwrap
 from .version import __version__ as version
@@ -65,14 +66,21 @@ def main():
     if args.run_code_blocks is not None:
         config['run_code_blocks'] = args.run_code_blocks
 
-    file_path = pathlib.Path(args.file)
+    file_path = pathlib.Path(args.file).expanduser()
     try:
         text = file_path.read_text(encoding='utf-8-sig')  # Handle BOM for Windows
     except FileNotFoundError:
-        raise Text2qtiError(f'File "{file_path}" does not exit')
+        raise Text2qtiError(f'File "{file_path}" does not exist')
+    except PermissionError as e:
+        raise Text2qtiError(f'File "{file_path}" cannot be read due to permission error:\n{e}')
     except UnicodeDecodeError as e:
-        raise Text2qtiError(f'File "{file_path}" was not encoded in valid UTF-8:\n{e}')
+        raise Text2qtiError(f'File "{file_path}" is not encoded in valid UTF-8:\n{e}')
 
-    quiz = Quiz(text, config=config, source_name=file_path.as_posix())
-    qti = QTI(quiz, config=config)
-    qti.save(file_path.parent / f'{file_path.stem}.zip')
+    cwd = pathlib.Path.cwd()
+    os.chdir(file_path.parent)
+    try:
+        quiz = Quiz(text, config=config, source_name=file_path.as_posix())
+        qti = QTI(quiz)
+        qti.save(file_path.parent / f'{file_path.stem}.zip')
+    finally:
+        os.chdir(cwd)

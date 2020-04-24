@@ -9,10 +9,11 @@
 
 
 import datetime
-from typing import Optional
+from typing import Dict, Optional
+from .quiz import Image
 
 
-TEMPLATE = '''\
+MANIFEST_START = '''\
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest identifier="{manifest_identifier}" xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1" xmlns:lom="http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource" xmlns:imsmd="http://www.imsglobal.org/xsd/imsmd_v1p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p1.xsd http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource http://www.imsglobal.org/profile/cc/ccv1p1/LOM/ccv1p1_lomresource_v1p0.xsd http://www.imsglobal.org/xsd/imsmd_v1p2 http://www.imsglobal.org/xsd/imsmd_v1p2p2.xsd">
   <metadata>
@@ -50,6 +51,15 @@ TEMPLATE = '''\
     <resource identifier="{dependency_identifier}" type="associatedcontent/imscc_xmlv1p1/learning-application-resource" href="{assessment_identifier}/assessment_meta.xml">
       <file href="{assessment_identifier}/assessment_meta.xml"/>
     </resource>
+'''
+
+IMAGE = '''\
+    <resource identifier="text2qti_image_{ident}" type="webcontent" href="{path}">
+      <file href="{path}"/>
+    </resource>
+'''
+
+MANIFEST_END = '''\
   </resources>
 </manifest>
 '''
@@ -59,13 +69,19 @@ def imsmanifest(*,
                 manifest_identifier: str,
                 assessment_identifier: str,
                 dependency_identifier: str,
+                images: Dict[str, Image],
                 date: Optional[str]=None) -> str:
     '''
     Generate `imsmanifest.xml`.
     '''
     if date is None:
         date = str(datetime.date.today())
-    return TEMPLATE.format(manifest_identifier=manifest_identifier,
-                           assessment_identifier=assessment_identifier,
-                           dependency_identifier=dependency_identifier,
-                           date=date)
+    xml = []
+    xml.append(MANIFEST_START.format(manifest_identifier=manifest_identifier,
+                                     assessment_identifier=assessment_identifier,
+                                     dependency_identifier=dependency_identifier,
+                                     date=date))
+    for image in images.values():
+        xml.append(IMAGE.format(ident=image.id, path=image.qti_xml_path))
+    xml.append(MANIFEST_END)
+    return ''.join(xml)
