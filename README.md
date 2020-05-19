@@ -375,3 +375,27 @@ Technical note: LaTeX and siunitx support are currently implemented as
 preprocessors that are used separately from Python-Markdown.  In rare cases,
 this may lead to conflicts with Markdown syntax.  These features may be
 reimplemented as Python-Markdown extensions in the future.
+
+
+### Comments
+
+There are multiple ways to add comments within a quiz file.  In all cases,
+comments are completely removed during quiz creation and do not appear in the
+final quiz in any form.
+
+At the top level of a quiz document (outside of questions, choices, or
+feedback) there are two types of comments.  These comments cannot be indented.
+* Line comments:  Any line that starts with a percent sign `%` is discarded.
+* Multiline comments:  If a line starts with `COMMENT`, that line and all
+  subsequent lines are discarded through a line that starts with
+  `END_COMMENT`.  The `COMMENT` and `END_COMMENT` delimiters must be on lines
+  by themselves; otherwise, an error is raised.
+
+Within Markdown text, standard HTML comments of the form `<!--comment-->` may
+be used.  These are stripped out during processing and do not appear in the
+final QTI file.  HTML comments are not supported within LaTeX math.
+
+Technical note:  HTML comments are currently stripped in a preprocessing step
+separate from Python-Markdown.  In rare cases, this may conflict with raw HTML
+embedded in Markdown.  This feature may be reimplemented as a Python-Markdown
+extension in the future.

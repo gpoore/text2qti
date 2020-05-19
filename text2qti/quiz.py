@@ -31,7 +31,7 @@ from .markdown import Image, Markdown
 
 
 
-# regex patterns for parsing quiz
+# regex patterns for parsing quiz content
 start_patterns = {
     'question': r'\d+\.',
     'correct_choice': r'\*[a-zA-Z]\)',
@@ -49,6 +49,12 @@ start_patterns = {
     'group_points_per_question': r'[Pp]oints per question:',
     'start_code': r'```+\s*\S.*',
     'end_code': r'```+',
+}
+# comments are currently handled separately from content
+comment_patterns = {
+    'start_multiline_comment': r'COMMENT',
+    'end_multiline_comment': r'END_COMMENT',
+    'line_comment': r'%',
 }
 no_content = set(['essay', 'start_group', 'end_group', 'start_code', 'end_code'])
 multi_para = set([x for x in start_patterns
@@ -384,7 +390,9 @@ class Quiz(object):
         for k in start_patterns:
             parse_actions[k] = getattr(self, f'append_{k}')
         parse_actions[None] = self.append_unknown
-        # Enhancement: revise to allow elements to span multiple paragraphs
+        start_multiline_comment_pattern = comment_patterns['start_multiline_comment']
+        end_multiline_comment_pattern = comment_patterns['end_multiline_comment']
+        line_comment_pattern = comment_patterns['line_comment']
         n_line_iter = iter(x for x in enumerate(string.splitlines()))
         n, line = next(n_line_iter, (0, None))
         lookahead = False
@@ -443,6 +451,23 @@ class Quiz(object):
                             n, line = next(n_line_iter, (0, None))
                             line_expandtabs = line.expandtabs(4) if line is not None else None
                         text = ' '.join(text_lines)
+            elif line.startswith(line_comment_pattern):
+                n, line = next(n_line_iter, (0, None))
+                continue
+            elif line.startswith(start_multiline_comment_pattern):
+                if line.strip() != start_multiline_comment_pattern:
+                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nUnexpected content after "{start_multiline_comment_pattern}"')
+                n, line = next(n_line_iter, (0, None))
+                while line is not None and not line.startswith(end_multiline_comment_pattern):
+                    n, line = next(n_line_iter, (0, None))
+                if line is None:
+                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nf"{start_multiline_comment_pattern}" without following "{end_multiline_comment_pattern}"')
+                if line.strip() != end_multiline_comment_pattern:
+                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nUnexpected content after "{end_multiline_comment_pattern}"')
+                n, line = next(n_line_iter, (0, None))
+                continue
+            elif line.startswith(end_multiline_comment_pattern):
+                raise Text2qtiError(f'In {self.source_name} on line {n+1}:\n"{end_multiline_comment_pattern}" without preceding "{start_multiline_comment_pattern}"')
             else:
                 action = None
                 text = line

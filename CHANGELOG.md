@@ -1,5 +1,14 @@
 # Change Log
 
+
+## v0.3.0 (2020-??-??)
+
+* Added support for comments at the top level of quiz files (outside Markdown
+  content like questions, choices, or feedback).  HTML comments within
+  Markdown are now stripped and no longer appear in the final QTI file (#2).
+
+
+
 ## v0.2.0 (2020-04-23)
 
 * Added support for images, using standard Markdown syntax.
@@ -17,6 +26,8 @@
   because QTI does not support HTML titles.
 * Fixed a bug that prevented source file names from appearing in error
   messages.  Fixed misspelling of "imsmanifest.xml" in QTI output.
+
+
 
 ## v0.1.0 (2020-04-01)
 

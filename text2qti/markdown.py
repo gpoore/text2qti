@@ -295,18 +295,23 @@ class Markdown(object):
         return self.siunitx_latex_macros_re.sub(lambda match: self._siunitx_dispatch(match, in_math), string)
 
 
+    html_comment_pattern = r'(?P<html_comment><!--.*?-->)'
     inline_code_pattern = r'(?P<code>(?<!`)(?P<code_delim>`+)(?!`).+?(?<!`)(?P=code_delim)(?!`))'
     inline_math_pattern = r'(?<!\$)\$(?!\$)(?P<math>[^ \t\n](?:[^$\n]+|\n[ \t]*[^$\n]+)*)(?<![ \t\n])\$(?!\$)'
-    inline_code_math_siunitx_re = re.compile('|'.join([inline_code_pattern,
-                                                       inline_math_pattern,
-                                                       siunitx_latex_macros_pattern]))
+    html_comment_or_inline_code_math_siunitx_re = re.compile('|'.join([html_comment_pattern,
+                                                                       inline_code_pattern,
+                                                                       inline_math_pattern,
+                                                                       siunitx_latex_macros_pattern]))
 
-    def _inline_code_math_siunitx_dispatch(self, match: typing.Match[str]) -> str:
+    def _html_comment_or_inline_code_math_siunitx_dispatch(self, match: typing.Match[str]) -> str:
         '''
-        Process LaTeX math and siunitx regex matches into Canvas image tags, while
-        leaving inline code matches unchanged.
+        Process LaTeX math and siunitx regex matches into Canvas image tags,
+        while stripping HTML comments and leaving inline code matches
+        unchanged.
         '''
         lastgroup = match.lastgroup
+        if lastgroup == 'html_comment':
+            return ''
         if lastgroup == 'code_delim':
             return match.group('code')
         if lastgroup == 'math':
@@ -327,7 +332,7 @@ class Markdown(object):
         Convert all siunitx macros in a string into plain LaTeX.  Then convert
         this LaTeX and all $-delimited LaTeX into Canvas img tags.
         '''
-        return self.inline_code_math_siunitx_re.sub(self._inline_code_math_siunitx_dispatch, string)
+        return self.html_comment_or_inline_code_math_siunitx_re.sub(self._html_comment_or_inline_code_math_siunitx_dispatch, string)
 
     def md_to_html_xml(self, markdown_string: str, strip_p_tags: bool=False) -> str:
         '''
