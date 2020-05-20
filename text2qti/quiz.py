@@ -34,8 +34,10 @@ from .markdown import Image, Markdown
 # regex patterns for parsing quiz content
 start_patterns = {
     'question': r'\d+\.',
-    'correct_choice': r'\*[a-zA-Z]\)',
-    'incorrect_choice': r'[a-zA-Z]\)',
+    'mctf_correct_choice': r'\*[a-zA-Z]\)',
+    'mctf_incorrect_choice': r'[a-zA-Z]\)',
+    'multans_correct_choice': r'\[\*\]',
+    'multans_incorrect_choice': r'\[ ?\]',
     'feedback': r'\.\.\.',
     'correct_feedback': r'\+',
     'incorrect_feedback': r'\-',
@@ -141,25 +143,6 @@ class Question(object):
 
     _no_feedback_question_types = set(['essay_question'])
 
-    def append_correct_choice(self, text: str):
-        if self.type is not None:
-            raise Text2qtiError(f'Question type "{self.type}" does not support choices')
-        choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
-        if choice.choice_html_xml in self._choice_set:
-            raise Text2qtiError('Duplicate choice for question')
-        self._choice_set.add(choice.choice_html_xml)
-        self.choices.append(choice)
-        self.correct_choices += 1
-
-    def append_incorrect_choice(self, text: str):
-        if self.type is not None:
-            raise Text2qtiError(f'Question type "{self.type}" does not support choices')
-        choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
-        if choice.choice_html_xml in self._choice_set:
-            raise Text2qtiError('Duplicate choice for question')
-        self._choice_set.add(choice.choice_html_xml)
-        self.choices.append(choice)
-
     def append_feedback(self, text: str):
         if self.type is not None:
             if self.type in self._no_feedback_question_types:
@@ -196,6 +179,52 @@ class Question(object):
             raise Text2qtiError('Feedback can only be specified once')
         self.incorrect_feedback_raw = text
         self.incorrect_feedback_html_xml = self.md.md_to_html_xml(text)
+
+    def append_mctf_correct_choice(self, text: str):
+        if self.type is not None:
+            raise Text2qtiError(f'Question type "{self.type}" does not support multiple choice')
+        choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
+        if choice.choice_html_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_html_xml)
+        self.choices.append(choice)
+        self.correct_choices += 1
+
+    def append_mctf_incorrect_choice(self, text: str):
+        if self.type is not None:
+            raise Text2qtiError(f'Question type "{self.type}" does not support multiple choice')
+        choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
+        if choice.choice_html_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_html_xml)
+        self.choices.append(choice)
+
+    def append_multans_correct_choice(self, text: str):
+        if self.type is None:
+            self.type = 'multiple_answers_question'
+            if self.choices:
+                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        elif self.type != 'multiple_answers_question':
+            raise Text2qtiError(f'Question type "{self.type}" does not support multiple answers')
+        choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
+        if choice.choice_html_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_html_xml)
+        self.choices.append(choice)
+        self.correct_choices += 1
+
+    def append_multans_incorrect_choice(self, text: str):
+        if self.type is None:
+            self.type = 'multiple_answers_question'
+            if self.choices:
+                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        elif self.type != 'multiple_answers_question':
+            raise Text2qtiError(f'Question type "{self.type}" does not support multiple answers')
+        choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
+        if choice.choice_html_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_html_xml)
+        self.choices.append(choice)
 
     def append_essay(self, text: str):
         if text:
@@ -278,6 +307,15 @@ class Question(object):
                 raise Text2qtiError('Question must specify a correct choice')
             if self.correct_choices > 1:
                 raise Text2qtiError('Question must specify only one correct choice')
+        elif self.type == 'multiple_answers_question':
+            # There must be at least one choice for the type to be set, so
+            # don't need to check for zero choices
+            if len(self.choices) < 2:
+                raise Text2qtiError('Question must provide more than one choice')
+            if self.correct_choices < 1:
+                raise Text2qtiError('Question must specify a correct choice')
+
+
 
 
 class Group(object):
@@ -573,22 +611,6 @@ class Quiz(object):
         if self._current_group is not None:
             self._current_group.append_question(question)
 
-    def append_correct_choice(self, text: str):
-        if not self.questions_and_delims:
-            raise Text2qtiError('Cannot have a choice without a question')
-        last_question_or_delim = self.questions_and_delims[-1]
-        if not isinstance(last_question_or_delim, Question):
-            raise Text2qtiError('Cannot have a choice without a question')
-        last_question_or_delim.append_correct_choice(text)
-
-    def append_incorrect_choice(self, text: str):
-        if not self.questions_and_delims:
-            raise Text2qtiError('Cannot have a choice without a question')
-        last_question_or_delim = self.questions_and_delims[-1]
-        if not isinstance(last_question_or_delim, Question):
-            raise Text2qtiError('Cannot have a choice without a question')
-        last_question_or_delim.append_incorrect_choice(text)
-
     def append_feedback(self, text: str):
         if not self.questions_and_delims:
             raise Text2qtiError('Cannot have feedback without a question')
@@ -612,6 +634,38 @@ class Quiz(object):
         if not isinstance(last_question_or_delim, Question):
             raise Text2qtiError('Cannot have feedback without a question')
         last_question_or_delim.append_incorrect_feedback(text)
+
+    def append_mctf_correct_choice(self, text: str):
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_mctf_correct_choice(text)
+
+    def append_mctf_incorrect_choice(self, text: str):
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_mctf_incorrect_choice(text)
+
+    def append_multans_correct_choice(self, text: str):
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_multans_correct_choice(text)
+
+    def append_multans_incorrect_choice(self, text: str):
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_multans_incorrect_choice(text)
 
     def append_essay(self, text: str):
         if not self.questions_and_delims:

@@ -13,8 +13,9 @@ numbers in scientific notation.
 
 ## Examples
 
-text2qti allows quick and efficient quiz creation.  Example plain-text quiz
-question that can be converted to QTI and then imported by Canvas:
+text2qti allows quick and efficient quiz creation.  Example
+**multiple-choice** plain-text quiz question that can be converted to QTI and
+then imported by Canvas:
 
 ```
 1.  What is 2+3?
@@ -49,6 +50,17 @@ b)  1
 ... Feedback for this particular answer.
 *c) 5
 ... Feedback for this particular answer.
+```
+
+**Multiple-answers questions** use `[]` or `[ ]` for incorrect answers and
+`[*]` for correct answers.
+
+```
+1.  Which of the following are dinosaurs?
+[ ] Woolly mammoth
+[*] Tyrannosaurus rex
+[*] Triceratops
+[ ] Smilodon fatalis
 ```
 
 **Numerical questions** are indicated by an equals sign followed by one or
