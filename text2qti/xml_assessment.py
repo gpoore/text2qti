@@ -227,7 +227,7 @@ ITEM_RESPROCESSING_MULTANS_INCORRECT_FEEDBACK = ITEM_RESPROCESSING_MCTF_INCORREC
 
 ITEM_RESPROCESSING_NUM_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
 
-ITEM_RESPROCESSING_NUM_SET_CORRECT_WITH_FEEDBACK = '''\
+ITEM_RESPROCESSING_NUM_RANGE_SET_CORRECT_WITH_FEEDBACK = '''\
           <respcondition continue="No">
             <conditionvar>
               <vargte respident="response1">{num_min}</vargte>
@@ -238,11 +238,42 @@ ITEM_RESPROCESSING_NUM_SET_CORRECT_WITH_FEEDBACK = '''\
           </respcondition>
 '''
 
-ITEM_RESPROCESSING_NUM_SET_CORRECT_NO_FEEDBACK = '''\
+ITEM_RESPROCESSING_NUM_RANGE_SET_CORRECT_NO_FEEDBACK = '''\
           <respcondition continue="No">
             <conditionvar>
               <vargte respident="response1">{num_min}</vargte>
               <varlte respident="response1">{num_max}</varlte>
+            </conditionvar>
+            <setvar action="Set" varname="SCORE">100</setvar>
+          </respcondition>
+'''
+
+ITEM_RESPROCESSING_NUM_EXACT_SET_CORRECT_WITH_FEEDBACK = '''\
+          <respcondition continue="No">
+            <conditionvar>
+              <or>
+                <varequal respident="response1">{num_exact}</varequal>
+                <and>
+                  <vargte respident="response1">{num_min}</vargte>
+                  <varlte respident="response1">{num_max}</varlte>
+                </and>
+              </or>
+            </conditionvar>
+            <setvar action="Set" varname="SCORE">100</setvar>
+            <displayfeedback feedbacktype="Response" linkrefid="correct_fb"/>
+          </respcondition>
+'''
+
+ITEM_RESPROCESSING_NUM_EXACT_SET_CORRECT_NO_FEEDBACK = '''\
+          <respcondition continue="No">
+            <conditionvar>
+              <or>
+                <varequal respident="response1">{num_exact}</varequal>
+                <and>
+                  <vargte respident="response1">{num_min}</vargte>
+                  <varlte respident="response1">{num_max}</varlte>
+                </and>
+              </or>
             </conditionvar>
             <setvar action="Set" varname="SCORE">100</setvar>
           </respcondition>
@@ -415,10 +446,18 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
             if question.feedback_raw is not None:
               xml.append(ITEM_RESPROCESSING_NUM_GENERAL_FEEDBACK)
             if question.correct_feedback_raw is None:
-                item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_SET_CORRECT_NO_FEEDBACK
+                if question.numerical_exact is None:
+                    item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_RANGE_SET_CORRECT_NO_FEEDBACK
+                else:
+                    item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_EXACT_SET_CORRECT_NO_FEEDBACK
             else:
-                item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_SET_CORRECT_WITH_FEEDBACK
-            xml.append(item_resprocessing_num_set_correct.format(num_min=question.numerical_min_html_xml, num_max=question.numerical_max_html_xml))
+                if question.numerical_exact is None:
+                    item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_RANGE_SET_CORRECT_WITH_FEEDBACK
+                else:
+                    item_resprocessing_num_set_correct = ITEM_RESPROCESSING_NUM_EXACT_SET_CORRECT_WITH_FEEDBACK
+            xml.append(item_resprocessing_num_set_correct.format(num_min=question.numerical_min_html_xml,
+                                                                 num_exact=question.numerical_exact_html_xml,
+                                                                 num_max=question.numerical_max_html_xml))
             if question.incorrect_feedback_raw is not None:
                 xml.append(ITEM_RESPROCESSING_NUM_INCORRECT_FEEDBACK)
             xml.append(ITEM_RESPROCESSING_END)

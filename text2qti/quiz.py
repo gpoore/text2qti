@@ -125,6 +125,8 @@ class Question(object):
         self._choice_set: Set[str] = set()
         self.numerical_min: Optional[Union[int, float]] = None
         self.numerical_min_html_xml: Optional[str] = None
+        self.numerical_exact: Optional[Union[int, float]] = None
+        self.numerical_exact_html_xml: Optional[str] = None
         self.numerical_max: Optional[Union[int, float]] = None
         self.numerical_max_html_xml: Optional[str] = None
         self.correct_choices = 0
@@ -261,6 +263,14 @@ class Question(object):
                 raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
             if min > max:
                 raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" with min < max')
+            self.numerical_min = min
+            self.numerical_max = max
+            if min.is_integer() and max.is_integer():
+                self.numerical_min_html_xml = f'{min}'
+                self.numerical_max_html_xml = f'{max}'
+            else:
+                self.numerical_min_html_xml = f'{min:.4f}'
+                self.numerical_max_html_xml = f'{max:.4f}'
         elif '+-' in text:
             num, margin = text.split('+-', 1)
             if margin.endswith('%'):
@@ -281,16 +291,30 @@ class Question(object):
             else:
                 min = num - margin
                 max = num + margin
+            self.numerical_min = min
+            self.numerical_exact = num
+            self.numerical_max = max
+            if min.is_integer() and num.is_integer() and max.is_integer():
+                self.numerical_min_html_xml = f'{min}'
+                self.numerical_exact_html_xml = f'{num}'
+                self.numerical_max_html_xml = f'{max}'
+            else:
+                self.numerical_min_html_xml = f'{min:.4f}'
+                self.numerical_exact_html_xml = f'{num:.4f}'
+                self.numerical_max_html_xml = f'{max:.4f}'
         elif int_re.match(text):
-            min = max = int(text)
+            num = int(text)
+            min = max = num
+            self.numerical_min = min
+            self.numerical_exact = num
+            self.numerical_max = max
+            self.numerical_min_html_xml = f'{min}'
+            self.numerical_exact_html_xml = f'{num}'
+            self.numerical_max_html_xml = f'{max}'
         else:
             raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
         if abs(min) < 1e-4 or abs(max) < 1e-4:
             raise Text2qtiError('Invalid numerical response; all acceptable values must have a magnitude >= 0.0001')
-        self.numerical_min = min
-        self.numerical_min_html_xml = f'{min:.4f}'
-        self.numerical_max = max
-        self.numerical_max_html_xml = f'{max:.4f}'
 
 
     def finalize(self):

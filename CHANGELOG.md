@@ -9,6 +9,9 @@
 * Added support for comments at the top level of quiz files (outside Markdown
   content like questions, choices, or feedback).  HTML comments within
   Markdown are now stripped and no longer appear in the final QTI file (#2).
+* For numerical questions, exact answers with allowed margin are now treated
+  as exact answers, rather than being converted into ranges of values.  This
+  primarily affects how feedback for incorrect answers is worded (#7).
 * Fixed a bug that allowed trailing whitespace to cause incorrect indentation
   calculations, resulting in indentation errors in valid quizzes.
 
