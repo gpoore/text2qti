@@ -220,9 +220,11 @@ needed if you plan to use LaTeX math; if not, simply press ENTER to continue.
    then export the quiz to QTI and look through the resulting output to find
    the URL.
  * If you are using educational software that does not handle LaTeX in a
-   manner compatible with Canvas, please open an issue requesting support for
-   that software, and include as much information as possible about how that
-   software processes LaTeX.
+   manner compatible with Canvas, try the `--pandoc-mathml` command-line
+   option when creating QTI files (note that this requires that
+   [Pandoc](https://pandoc.org/) be installed).  If that does not work, please
+   open an issue requesting support for that software, and include as much
+   information as possible about how that software processes LaTeX.
 
 
 
@@ -358,6 +360,19 @@ result in errors if these files are not found.
 
 
 ### LaTeX
+
+By default, text2qti supports LaTeX using a Canvas LaTeX rendering URL.  This
+can be set during installation, or by editing the configuration file
+`.text2qti.bespon` in your home or user directory.  It is possible to convert
+LaTeX to MathML instead with the `--pandoc-mathml` command-line option.  This
+requires that [Pandoc](https://pandoc.org/) be installed for converting LaTeX
+to MathML.  For example, to create a quiz you might run a command like this:
+```
+text2qti --pandoc-mathml quiz.txt
+```
+When `--pandoc-mathml` is used, a cache file `_text2qti_cache.zip` will be
+created in the quiz file directory.  This is used to store Pandoc MathML
+output to increase performance for long quizzes with lots of math.
 
 text2qti supports inline LaTeX math within dollar signs `$`.  There must be a
 non-space character immediately after the opening `$` and immediately before

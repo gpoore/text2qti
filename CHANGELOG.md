@@ -4,9 +4,13 @@
 ## v0.3.0 (2020-??-??)
 
 * Added support for multiple-answers questions.
+* Added `--pandoc-mathml` command-line option.  This converts LaTeX to MathML
+  via Pandoc, rather than using a Canvas LaTeX rendering URL (#4).
 * Added support for comments at the top level of quiz files (outside Markdown
   content like questions, choices, or feedback).  HTML comments within
   Markdown are now stripped and no longer appear in the final QTI file (#2).
+* Fixed a bug that allowed trailing whitespace to cause incorrect indentation
+  calculations, resulting in indentation errors in valid quizzes.
 
 
 

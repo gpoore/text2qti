@@ -8,16 +8,22 @@
 #
 
 
+import atexit
 import hashlib
+import json
 import pathlib
 import re
+import subprocess
+import time
 import typing
 from typing import Dict, Set
 import urllib.parse
+import zipfile
 import markdown
 from markdown.inlinepatterns import ImageInlineProcessor, IMAGE_LINK_RE
 from .config import Config
 from .err import Text2qtiError
+from .version import __version__ as version
 
 
 
@@ -101,13 +107,76 @@ class Markdown(object):
     '''
     def __init__(self, config: Config):
         self.config = config
+
         md_extensions = ['smarty', 'sane_lists', 'def_list', 'fenced_code', 'footnotes', 'tables']
         markdown_processor = markdown.Markdown(extensions=md_extensions)
         markdown_image_processor = Text2qtiImagePattern(IMAGE_LINK_RE, markdown_processor, self)
         markdown_processor.inlinePatterns.register(markdown_image_processor, 'image_link', 150)
         self.markdown_processor = markdown_processor
+
         self.images: Dict[str, Image] = {}
         self.image_name_set: Set[str] = set()
+
+        if config['pandoc_mathml']:
+            self.latex_to_qti = self.latex_to_pandoc_mathml
+            self._prep_cache()
+        else:
+            self.latex_to_qti = self.latex_to_canvas_img
+
+
+    def finalize(self):
+        if self.config['pandoc_mathml']:
+            self._save_cache()
+
+
+    def _prep_cache(self):
+        self._cache_path = pathlib.Path('_text2qti_cache.zip')
+        self._cache_lock_path = pathlib.Path('_text2qti_cache.lock')
+
+        max_lock_wait = 2
+        lock_check_interval = 0.1
+        lock_time = 0
+        while True:
+            try:
+                self._cache_lock_path.touch(exist_ok=False)
+            except FileExistsError:
+                if lock_time > max_lock_wait:
+                    raise Text2qtiError('The text2qti cache is locked; this usually means that another instance of '
+                                        'text2qti is already running and you should try again later')
+                time.sleep(lock_check_interval)
+                lock_time += lock_check_interval
+            else:
+                break
+        def final_cache_cleanup():
+            try:
+                self._cache_lock_path.unlink()
+            except FileNotFoundError:
+                pass
+        atexit.register(final_cache_cleanup)
+
+        default_cache = {
+            'version': version,
+            'pandoc_mathml': {}
+        }
+        try:
+            with zipfile.ZipFile(str(self._cache_path)) as zf:
+                with zf.open('cache.json') as f:
+                    cache = json.load(f)
+        except (FileNotFoundError, KeyError, json.JSONDecodeError):
+            cache = default_cache
+        else:
+            if not isinstance(cache, dict) or cache.get('version') != version:
+                cache = default_cache
+        for v in cache['pandoc_mathml'].values():
+            v['unused_count'] += 1
+        self._cache = cache
+
+
+    def _save_cache(self):
+        self._cache['pandoc_mathml'] = {k: v for k, v in self._cache['pandoc_mathml'].items()
+                                       if v['unused_count'] <= 10}
+        with zipfile.ZipFile(str(self._cache_path), 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr('cache.json', json.dumps(self._cache))
 
 
     XML_ESCAPES = (('&', '&amp;'),
@@ -161,6 +230,36 @@ class Markdown(object):
                                                     latex_url_escaped=latex_url_escaped)
 
 
+    def latex_to_pandoc_mathml(self, latex: str) -> str:
+        '''
+        Convert a LaTeX equation into MathML using Pandoc.
+        '''
+        data = self._cache['pandoc_mathml'].get(latex)
+        if data is not None:
+            mathml = data['mathml']
+            data['unused_count'] = 0
+        else:
+            try:
+                proc = subprocess.run(['pandoc', '-f', 'markdown', '-t', 'html', '--mathml'],
+                                      input='${0}$'.format(latex), encoding='utf8',
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                      check=True)
+            except FileNotFoundError as e:
+                raise Text2qtiError(f'Could not find Pandoc:\n{e}')
+            except subprocess.CalledProcessError as e:
+                raise Text2qtiError(f'Running Pandoc failed:\n{e}')
+            mathml = proc.stdout.strip()
+            if mathml.startswith('<p>'):
+                mathml = mathml[len('<p>'):]
+            if mathml.endswith('</p>'):
+                mathml = mathml[:-len('</p>')]
+            self._cache['pandoc_mathml'][latex] = {
+                'mathml': mathml,
+                'unused_count': 0,
+            }
+        return mathml
+
+
     siunitx_num_number_re = re.compile(r'[+-]?(?:0|(?:[1-9][0-9]*(?:\.[0-9]+)?|0?\.[0-9]+)(?:[eE][+-]?[1-9][0-9]*)?)$')
 
     def siunitx_num_to_plain_latex(self, number: str, in_math: bool=False) -> str:
@@ -181,7 +280,7 @@ class Markdown(object):
             latex_number = number
         if in_math:
             return latex_number
-        return self.latex_to_canvas_img(latex_number)
+        return self.latex_to_qti(latex_number)
 
 
     def siunitx_si_to_plain_latex(self, unit: str, in_math: bool=False) -> str:
@@ -247,7 +346,7 @@ class Markdown(object):
         latex_unit = '{' + ''.join(unit_list) + '}'  # wrapping {} may prevent line breaks
         if in_math:
             return latex_unit
-        return self.latex_to_canvas_img(latex_unit)
+        return self.latex_to_qti(latex_unit)
 
 
     def siunitx_SI_to_plain_latex(self, number: str, unit: str, in_math: bool=False) -> str:
@@ -264,7 +363,7 @@ class Markdown(object):
         latex = f'{latex_number}{unit_sep}{latex_unit}'
         if in_math:
             return latex
-        return self.latex_to_canvas_img(latex)
+        return self.latex_to_qti(latex)
 
 
     siunitx_num_macro_pattern = r'\\num\{(?P<num_number>[^{}]+)\}'
@@ -318,7 +417,7 @@ class Markdown(object):
             math = match.group('math')
             math = math.replace('\n ', ' ').replace('\n', ' ')
             math = self.sub_siunitx_to_plain_latex(math, in_math=True)
-            return self.latex_to_canvas_img(math)
+            return self.latex_to_qti(math)
         if lastgroup == 'SI_unit':
             return self.siunitx_SI_to_plain_latex(match.group('SI_number'), match.group('SI_unit'), in_math=False)
         if lastgroup == 'num_number':

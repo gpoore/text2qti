@@ -469,7 +469,7 @@ class Quiz(object):
                         n, line = next(n_line_iter, (0, None))
                         continue
                 elif action not in no_content:
-                    indent_expandtabs = ' '*len(line[:len(line)-len(text)].expandtabs(4))
+                    indent_expandtabs = ' '*len(line[:match.end()].expandtabs(4))
                     text_lines = [text]
                     n, line = next(n_line_iter, (0, None))
                     line_expandtabs = line.expandtabs(4) if line is not None else None
@@ -552,6 +552,8 @@ class Quiz(object):
             h.update(digest)
         self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
+
+        self.md.finalize()
 
     def _run_code(self, executable: str, code: str) -> str:
         if not self.config['run_code_blocks']:

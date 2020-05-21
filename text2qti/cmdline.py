@@ -32,6 +32,8 @@ def main():
                         help='URL for rendering LaTeX equations')
     parser.add_argument('--run-code-blocks', action='store_const', const=True,
                         help='Allow special code blocks to be executed and insert their output (off by default for security)')
+    parser.add_argument('--pandoc-mathml', action='store_const', const=True,
+                        help='Convert LaTeX math to MathML using Pandoc (this will create a cache file "_text2qti_cache.zip" in the quiz file directory)')
     parser.add_argument('file',
                         help='File to convert from text to QTI')
     args = parser.parse_args()
@@ -56,6 +58,11 @@ def main():
             second form, you may need to change the domain from ".edu" to
             the appropriate value for your institution.
 
+            If you do not use Canvas or software with a compatible LaTeX
+            rendering URL, you should not set a rendering URL.  You may still
+            be able to use LaTeX via the command-line option
+            "--pandoc-mathml".
+
             LaTeX rendering URL:  '''))
         latex_render_url = latex_render_url.strip()
         if latex_render_url:
@@ -65,6 +72,8 @@ def main():
         config['latex_render_url'] = args.latex_render_url
     if args.run_code_blocks is not None:
         config['run_code_blocks'] = args.run_code_blocks
+    if args.pandoc_mathml is not None:
+        config['pandoc_mathml'] = args.pandoc_mathml
 
     file_path = pathlib.Path(args.file).expanduser()
     try:
