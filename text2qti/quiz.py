@@ -477,6 +477,8 @@ class Quiz(object):
                     if action in multi_para:
                         while (line is not None and
                                 (not line or line.isspace() or line_expandtabs.startswith(indent_expandtabs))):
+                            # The `rstrip()` prevents trailing double spaces
+                            # from becoming `<br />`.
                             text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
                             n, line = next(n_line_iter, (0, None))
                             line_expandtabs = line.expandtabs(4) if line is not None else None
@@ -485,6 +487,8 @@ class Quiz(object):
                         while (line is not None and
                                 line_expandtabs.startswith(indent_expandtabs) and
                                 line_expandtabs[len(indent_expandtabs):len(indent_expandtabs)+1] not in ('', ' ', '\t')):
+                            # The `rstrip()` prevents trailing double spaces
+                            # from becoming `<br />`.
                             text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
                             n, line = next(n_line_iter, (0, None))
                             line_expandtabs = line.expandtabs(4) if line is not None else None
