@@ -4,10 +4,10 @@ text2qti converts
 [Markdown](https://daringfireball.net/projects/markdown/)-based plain text
 files into quizzes in QTI format, which can be imported by
 [Canvas](https://www.instructure.com/canvas/) and other educational software.
-It supports multiple-choice, true/false, numerical, and essay questions.
-It includes basic support for LaTeX math within Markdown, and allows a limited
-subset of [siunitx](https://ctan.org/pkg/siunitx) notation for units and for
-numbers in scientific notation.
+It supports multiple-choice, true/false, multiple-answers, numerical, and
+essay questions.  It includes basic support for LaTeX math within Markdown,
+and allows a limited subset of [siunitx](https://ctan.org/pkg/siunitx)
+notation for units and for numbers in scientific notation.
 
 
 
@@ -32,14 +32,18 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 ("`*c) `").  All question and choice text is processed as
 [Markdown](https://daringfireball.net/projects/markdown/).
 
-There is also support for a quiz title, a quiz description, and feedback.
-Note that unlike all other text, the title is treated as plain text, not
-Markdown, due to the QTI format.
+There is also support for a quiz title and description, as well as question
+titles, point values, and feedback.  Note that unlike all other text, the quiz
+and question titles are treated as plain text, not Markdown, due to the QTI
+format.  Also note that Canvas may ignore the quiz description and question
+titles.  Question point values must be positive integers or half-integers.
 
 ```
 Quiz title: Addition
 Quiz description: Checking addition.
 
+Title: An addition question
+Points: 2
 1.  What is 2+3?
 ... General question feedback.
 +   Feedback for correct answer.
@@ -311,21 +315,21 @@ versus `Answer`).
 
 text2qti processes almost all text as
 [Markdown](https://daringfireball.net/projects/markdown/), using
-[Python-Markdown](https://python-markdown.github.io/).  (The only exception is
-the quiz title, which is processed as plain text due to the QTI format.)  For
-example, `*emphasized*` produces emphasized text, which typically appears as
-italics.  Text can be styled using Markdown notation, or with HTML.  Remember
-to preview quizzes after conversion to QTI, especially when using any
-significant amount of HTML.
+[Python-Markdown](https://python-markdown.github.io/).  (The only exceptions
+are the quiz title and question titles, which are processed as plain text due
+to the QTI format.)  For example, `*emphasized*` produces *emphasized* text,
+which typically appears as italics.  Text can be styled using Markdown
+notation, or with HTML.  Remember to preview quizzes after conversion to QTI,
+especially when using any significant amount of HTML.
 
 
 ### Titles
 
-Titles are limited to a single paragraph.  If this paragraph is wrapped over
-multiple lines, all lines after the first must be indented to the same level
-as the start of the paragraph text on the initial line.  All tabs are expanded
-to 4 spaces before indentation is compared, following the typical Markdown
-approach.
+Quiz and question titles are limited to a single paragraph.  If this paragraph
+is wrapped over multiple lines, all lines after the first must be indented by
+at least two spaces or one tab, and share the same indentation.  All tabs are
+expanded to 4 spaces before indentation is compared, following the typical
+Markdown approach.
 
 
 ### Descriptions, questions, choices, and feedback

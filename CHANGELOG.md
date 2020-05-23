@@ -4,6 +4,7 @@
 ## v0.3.0 (2020-??-??)
 
 * Added support for multiple-answers questions.
+* Added support for setting question titles and point values (#9).
 * Added `--pandoc-mathml` command-line option.  This converts LaTeX to MathML
   via Pandoc, rather than using a Canvas LaTeX rendering URL (#4).
 * Added support for comments at the top level of quiz files (outside Markdown
@@ -12,6 +13,9 @@
 * For numerical questions, exact answers with allowed margin are now treated
   as exact answers, rather than being converted into ranges of values.  This
   primarily affects how feedback for incorrect answers is worded (#7).
+* Relaxed indentation requirements for quiz titles spanning multiple lines.
+  Indentation for wrapped lines must now be at least 2 spaces or 1 tab, rather
+  than being equivalent to that of the first character in the title.
 * Fixed a bug that allowed trailing whitespace to cause incorrect indentation
   calculations, resulting in indentation errors in valid quizzes.
 
