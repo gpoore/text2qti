@@ -33,10 +33,11 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 [Markdown](https://daringfireball.net/projects/markdown/).
 
 There is also support for a quiz title and description, as well as question
-titles, point values, and feedback.  Note that unlike all other text, the quiz
-and question titles are treated as plain text, not Markdown, due to the QTI
-format.  Also note that Canvas may ignore the quiz description and question
-titles.  Question point values must be positive integers or half-integers.
+titles, point values, and feedback.  Note that unlike all other text, titles
+like quiz and question titles are treated as plain text, not Markdown, due to
+the QTI format.  Also note that Canvas may ignore the quiz description and
+question titles.  Question point values must be positive integers or
+half-integers.
 
 ```
 Quiz title: Addition
@@ -101,6 +102,17 @@ They do not support feedback.
 ____
 ````
 
+
+**Text regions** outside of questions are supported.  Note that unlike all
+other text, titles like text region titles are treated as plain text, not
+Markdown, due to the QTI format.  Also note that Canvas may ignore the text
+region title and only display the text itself.  Text regions are not required
+to have both a title and text; either may be used alone, but the title must come
+first when both are present.
+```
+Text title:  Instructions about the next questions
+Text:  General comments about the next questions.
+```
 
 
 ## Installation
@@ -316,30 +328,35 @@ versus `Answer`).
 text2qti processes almost all text as
 [Markdown](https://daringfireball.net/projects/markdown/), using
 [Python-Markdown](https://python-markdown.github.io/).  (The only exceptions
-are the quiz title and question titles, which are processed as plain text due
-to the QTI format.)  For example, `*emphasized*` produces *emphasized* text,
-which typically appears as italics.  Text can be styled using Markdown
-notation, or with HTML.  Remember to preview quizzes after conversion to QTI,
-especially when using any significant amount of HTML.
+are the quiz title, question titles, and text region titles, which are
+processed as plain text due to the QTI format.)  For example, `*emphasized*`
+produces *emphasized* text, which typically appears as italics.  Text can be
+styled using Markdown notation, or with HTML.  Remember to preview quizzes
+after conversion to QTI, especially when using any significant amount of HTML.
 
 
 ### Titles
 
-Quiz and question titles are limited to a single paragraph.  If this paragraph
-is wrapped over multiple lines, all lines after the first must be indented by
-at least two spaces or one tab, and share the same indentation.  All tabs are
-expanded to 4 spaces before indentation is compared, following the typical
-Markdown approach.
+Quiz, question, and text region titles are limited to a single paragraph.  If
+this paragraph is wrapped over multiple lines, all lines after the first must
+be indented by at least two spaces or one tab, and share the same indentation.
+All tabs are expanded to 4 spaces before indentation is compared, following
+the typical Markdown approach.
+
+All titles are treated as plain text, not Markdown, due to the QTI format.
+
+Titles are always optional, but when they are used for a given element, they
+are always required to be first, before any other attributes.
 
 
-### Descriptions, questions, choices, and feedback
+### Descriptions, questions, choices, feedback, and text regions
 
-Descriptions, questions, choices, and feedback may span multiple paragraphs
-and include arbitrary Markdown content like code blocks or quotations.
-Everything must be indented to at least the same level as the start of the
-first paragraph on the initial line.  All tabs are expanded to 4 spaces before
-indentation is compared, following the typical Markdown approach.  For
-example,
+Descriptions, questions, choices, feedback, and text regions may span multiple
+paragraphs and include arbitrary Markdown content like code blocks or
+quotations.  Everything must be indented to at least the same level as the
+start of the first paragraph on the initial line.  All tabs are expanded to 4
+spaces before indentation is compared, following the typical Markdown
+approach.  For example,
 ```
 1.  A question paragraph that is long enough to wrap onto a second line.
     The second line must be indented to match up with the start of the

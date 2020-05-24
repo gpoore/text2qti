@@ -5,6 +5,7 @@
 
 * Added support for multiple-answers questions.
 * Added support for setting question titles and point values (#9).
+* Added support for text regions outside questions.
 * Added `--pandoc-mathml` command-line option.  This converts LaTeX to MathML
   via Pandoc, rather than using a Canvas LaTeX rendering URL (#4).
 * Added support for comments at the top level of quiz files (outside Markdown

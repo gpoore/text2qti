@@ -8,7 +8,7 @@
 #
 
 
-from .quiz import Quiz, Question, GroupStart, GroupEnd
+from .quiz import Quiz, Question, GroupStart, GroupEnd, TextRegion
 
 
 BEFORE_ITEMS = '''\
@@ -38,6 +38,36 @@ GROUP_START = '''\
 
 GROUP_END = '''\
     </section>
+'''
+
+TEXT = '''\
+      <item ident="{ident}" title="{text_title_xml}">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield>
+              <fieldlabel>question_type</fieldlabel>
+              <fieldentry>text_only_question</fieldentry>
+            </qtimetadatafield>
+            <qtimetadatafield>
+              <fieldlabel>points_possible</fieldlabel>
+              <fieldentry>0</fieldentry>
+            </qtimetadatafield>
+            <qtimetadatafield>
+              <fieldlabel>original_answer_ids</fieldlabel>
+              <fieldentry></fieldentry>
+            </qtimetadatafield>
+            <qtimetadatafield>
+              <fieldlabel>assessment_question_identifierref</fieldlabel>
+              <fieldentry>{assessment_question_identifierref}</fieldentry>
+            </qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material>
+            <mattext texttype="text/html">{text_html_xml}</mattext>
+          </material>
+        </presentation>
+      </item>
 '''
 
 AFTER_ITEMS = '''\
@@ -345,6 +375,12 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
     xml.append(BEFORE_ITEMS.format(assessment_identifier=assessment_identifier,
                                    title=title_xml))
     for question_or_delim in quiz.questions_and_delims:
+        if isinstance(question_or_delim, TextRegion):
+            xml.append(TEXT.format(ident=f'text2qti_text_{question_or_delim.id}',
+                                   text_title_xml=question_or_delim.title_xml,
+                                   assessment_question_identifierref=f'text2qti_question_ref_{question_or_delim.id}',
+                                   text_html_xml=question_or_delim.text_html_xml))
+            continue
         if isinstance(question_or_delim, GroupStart):
             xml.append(GROUP_START.format(ident=f'text2qti_group_{question_or_delim.group.id}',
                                           group_title=question_or_delim.group.title_xml,

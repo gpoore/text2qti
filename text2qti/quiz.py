@@ -45,6 +45,8 @@ start_patterns = {
     'numerical': r'=',
     'question_title': r'[Tt]itle:',
     'question_points': r'[Pp]oints:',
+    'text_title': r'[Tt]ext [Tt]itle:',
+    'text': r'[Tt]ext:',
     'quiz_title': r'[Qq]uiz [Tt]itle:',
     'quiz_description': r'[Qq]uiz [Dd]escription:',
     'start_group': r'GROUP',
@@ -80,6 +82,46 @@ start_missing_whitespace_re = re.compile('|'.join(r'(?P<{0}>{1}(?=\S))'.format(n
                                                   if name not in no_content))
 start_code_supported_info_re = re.compile(r'\{\s*\.[a-zA-Z](?:[a-zA-Z0-9]+|(?:_+|-+)[a-zA-Z0-9]+)*\s+\.run\s*\}$')
 int_re = re.compile('(?:0|[+-]?[1-9](?:[0-9]+|_[0-9]+)*)$')
+
+
+
+
+class TextRegion(object):
+    '''
+    A text region between questions.
+    '''
+    def __init__(self, *, index: int, md: Markdown):
+        self.title_raw: Optional[str] = None
+        self.title_xml = ''
+        self.text_raw: Optional[str] = None
+        self.text_html_xml = ''
+        self.md = md
+        self._index = index
+
+    def _set_id(self):
+        h = hashlib.blake2b()
+        h.update(f'{self._index}'.encode('utf8'))
+        h.update(h.digest())
+        h.update(self.title_xml.encode('utf8'))
+        h.update(h.digest())
+        h.update(self.text_html_xml.encode('utf8'))
+        self.id = h.hexdigest()[:64]
+
+    def set_title(self, text: str):
+        if self.title_raw is not None:
+            raise Text2qtiError('Text title has already been set')
+        if self.text_raw is not None:
+            raise Text2qtiError('Must set text title before text itself')
+        self.title_raw = text
+        self.title_xml = self.md.xml_escape(text)
+        self._set_id()
+
+    def set_text(self, text: str):
+        if self.text_raw is not None:
+            raise Text2qtiError('Text has already been set')
+        self.text_raw = text
+        self.text_html_xml = self.md.md_to_html_xml(text)
+        self._set_id()
 
 
 
@@ -465,7 +507,7 @@ class Quiz(object):
         self.title_xml = 'Quiz'
         self.description_raw = None
         self.description_html_xml = ''
-        self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd]] = []
+        self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd, TextRegion]] = []
         self._current_group: Optional[Group] = None
         # The set for detecting duplicate questions uses the XML version of
         # the question, to avoid the issue of multiple Markdown
@@ -600,6 +642,8 @@ class Quiz(object):
                 digests.append(x.group.hash_digest)
             elif isinstance(x, GroupEnd):
                 pass
+            elif isinstance(x, TextRegion):
+                pass
             else:
                 raise TypeError
         self.points_possible = points_possible
@@ -664,6 +708,35 @@ class Quiz(object):
         self.description_raw = text
         self.description_html_xml = self.md.md_to_html_xml(text)
 
+    def append_text_title(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were given but not used')
+        if self.questions_and_delims:
+            last_question_or_delim = self.questions_and_delims[-1]
+            if isinstance(last_question_or_delim, Question):
+                last_question_or_delim.finalize()
+        text_region = TextRegion(index=len(self.questions_and_delims), md=self.md)
+        text_region.set_title(text)
+        self.questions_and_delims.append(text_region)
+
+    def append_text(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were given but not used')
+        if self.questions_and_delims:
+            last_question_or_delim = self.questions_and_delims[-1]
+            if isinstance(last_question_or_delim, Question):
+                last_question_or_delim.finalize()
+            if isinstance(last_question_or_delim, TextRegion) and last_question_or_delim.text_raw is None:
+                last_question_or_delim.set_text(text)
+            else:
+                text_region = TextRegion(index=len(self.questions_and_delims), md=self.md)
+                text_region.set_text(text)
+                self.questions_and_delims.append(text_region)
+        else:
+            text_region = TextRegion(index=len(self.questions_and_delims), md=self.md)
+            text_region.set_text(text)
+            self.questions_and_delims.append(text_region)
+
     def append_question(self, text: str):
         if self.questions_and_delims:
             last_question_or_delim = self.questions_and_delims[-1]
@@ -684,6 +757,8 @@ class Quiz(object):
     def append_question_title(self, text: str):
         if 'title' in self._next_question_attr:
             raise Text2qtiError('Title for next question has already been set')
+        if 'points' in self._next_question_attr:
+            raise Text2qtiError('Title for next question must be set before point value')
         self._next_question_attr['title'] = text
 
     def append_question_points(self, text: str):
