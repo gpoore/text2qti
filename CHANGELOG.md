@@ -4,6 +4,7 @@
 ## v0.3.0 (2020-??-??)
 
 * Added support for multiple-answers questions.
+* Added support for file-upload questions.
 * Added support for setting question titles and point values (#9).
 * Added support for text regions outside questions.
 * Added `--pandoc-mathml` command-line option.  This converts LaTeX to MathML
@@ -14,6 +15,7 @@
 * For numerical questions, exact answers with allowed margin are now treated
   as exact answers, rather than being converted into ranges of values.  This
   primarily affects how feedback for incorrect answers is worded (#7).
+* Essay questions now support general feedback.
 * Relaxed indentation requirements for quiz titles spanning multiple lines.
   Indentation for wrapped lines must now be at least 2 spaces or 1 tab, rather
   than being equivalent to that of the first character in the title.

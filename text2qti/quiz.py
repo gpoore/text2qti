@@ -42,6 +42,7 @@ start_patterns = {
     'correct_feedback': r'\+',
     'incorrect_feedback': r'\-',
     'essay': r'___+',
+    'upload': r'\^\^\^+',
     'numerical': r'=',
     'question_title': r'[Tt]itle:',
     'question_points': r'[Pp]oints:',
@@ -63,7 +64,7 @@ comment_patterns = {
     'line_comment': r'%',
 }
 # whether regex needs to check after pattern for content on the same line
-no_content = set(['essay', 'start_group', 'end_group', 'start_code', 'end_code'])
+no_content = set(['essay', 'upload', 'start_group', 'end_group', 'start_code', 'end_code'])
 # whether parser needs to check for multi-line content
 multi_line = set([x for x in start_patterns
                   if x not in no_content and not any(y in x for y in ('pick', 'points', 'numerical'))])
@@ -309,8 +310,24 @@ class Question(object):
         self.type = 'essay_question'
         if self.choices:
             raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
-        if any(x is not None for x in (self.feedback_raw, self.correct_feedback_raw, self.incorrect_feedback_raw)):
-            raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+        if any(x is not None for x in (self.correct_feedback_raw, self.incorrect_feedback_raw)):
+            raise Text2qtiError(f'Question type "{self.type}" does not support correct/incorrect feedback')
+
+    def append_upload(self, text: str):
+        if text:
+            # The upload response indicator consumes its entire line, leaving
+            # the empty string; `text` just gives all append functions
+            # the same form.
+            raise ValueError
+        if self.type is not None:
+            if self.type == 'file_upload_question':
+                raise Text2qtiError(f'Cannot specify upload response multiple times')
+            raise Text2qtiError(f'Question type "{self.type}" does not support upload response')
+        self.type = 'file_upload_question'
+        if self.choices:
+            raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        if any(x is not None for x in (self.correct_feedback_raw, self.incorrect_feedback_raw)):
+            raise Text2qtiError(f'Question type "{self.type}" does not support correct/incorrect feedback')
 
     def append_numerical(self, text: str):
         if self.type is not None:
@@ -421,7 +438,7 @@ class Group(object):
         self.points_per_question = 1
         self._points_per_question_is_set = False
         self.questions: List[Question] = []
-        self._question_points_possible: Optional[int] = None
+        self._question_points_possible: Optional[Union[int, float]] = None
         self.title_raw: Optional[str] = None
         self.title_xml = 'Group'
 
@@ -845,6 +862,16 @@ class Quiz(object):
         if not isinstance(last_question_or_delim, Question):
             raise Text2qtiError('Cannot have an essay response without a question')
         last_question_or_delim.append_essay(text)
+
+    def append_upload(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were given but not used')
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have an upload response without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have an upload response without a question')
+        last_question_or_delim.append_upload(text)
 
     def append_numerical(self, text: str):
         if self._next_question_attr:

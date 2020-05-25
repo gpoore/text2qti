@@ -24,6 +24,12 @@ BEFORE_ITEMS = '''\
     <section ident="root_section">
 '''
 
+AFTER_ITEMS = '''\
+    </section>
+  </assessment>
+</questestinterop>
+'''
+
 GROUP_START = '''\
     <section ident="{ident}" title="{group_title}">
       <selection_ordering>
@@ -70,13 +76,6 @@ TEXT = '''\
       </item>
 '''
 
-AFTER_ITEMS = '''\
-    </section>
-  </assessment>
-</questestinterop>
-'''
-
-
 START_ITEM = '''\
       <item ident="{question_identifier}" title="{question_title}">
 '''
@@ -111,6 +110,7 @@ ITEM_METADATA_MCTF_MULTANS_NUM = '''\
 
 ITEM_METADATA_ESSAY = ITEM_METADATA_MCTF_MULTANS_NUM.replace('{original_answer_ids}', '')
 
+ITEM_METADATA_UPLOAD = ITEM_METADATA_ESSAY
 
 ITEM_PRESENTATION_MCTF = '''\
         <presentation>
@@ -146,6 +146,14 @@ ITEM_PRESENTATION_ESSAY = '''\
               <response_label ident="answer1" rshuffle="No"/>
             </render_fib>
           </response_str>
+        </presentation>
+'''
+
+ITEM_PRESENTATION_UPLOAD = '''\
+        <presentation>
+          <material>
+            <mattext texttype="text/html">{question_html_xml}</mattext>
+          </material>
         </presentation>
 '''
 
@@ -255,6 +263,10 @@ ITEM_RESPROCESSING_MULTANS_SET_CORRECT_VAREQUAL_INCORRECT = '''\
 
 ITEM_RESPROCESSING_MULTANS_INCORRECT_FEEDBACK = ITEM_RESPROCESSING_MCTF_INCORRECT_FEEDBACK
 
+ITEM_RESPROCESSING_ESSAY_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
+
+ITEM_RESPROCESSING_UPLOAD_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
+
 ITEM_RESPROCESSING_NUM_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
 
 ITEM_RESPROCESSING_NUM_RANGE_SET_CORRECT_WITH_FEEDBACK = '''\
@@ -318,6 +330,8 @@ ITEM_RESPROCESSING_ESSAY = '''\
             </conditionvar>
           </respcondition>
 '''
+
+
 
 ITEM_RESPROCESSING_END = '''\
         </resprocessing>
@@ -406,6 +420,9 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
         elif question.type == 'essay_question':
             item_metadata = ITEM_METADATA_ESSAY
             original_answer_ids = f'text2qti_essay_{question.id}'
+        elif question.type == 'file_upload_question':
+            item_metadata = ITEM_METADATA_UPLOAD
+            original_answer_ids = f'text2qti_upload_{question.id}'
         else:
             raise ValueError
         xml.append(item_metadata.format(question_type=question.type,
@@ -429,6 +446,8 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
             xml.append(ITEM_PRESENTATION_NUM.format(question_html_xml=question.question_html_xml))
         elif question.type == 'essay_question':
             xml.append(ITEM_PRESENTATION_ESSAY.format(question_html_xml=question.question_html_xml))
+        elif question.type == 'file_upload_question':
+            xml.append(ITEM_PRESENTATION_UPLOAD.format(question_html_xml=question.question_html_xml))
         else:
             raise ValueError
 
@@ -500,11 +519,19 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
         elif question.type == 'essay_question':
             xml.append(ITEM_RESPROCESSING_START)
             xml.append(ITEM_RESPROCESSING_ESSAY)
+            if question.feedback_raw is not None:
+                xml.append(ITEM_RESPROCESSING_ESSAY_GENERAL_FEEDBACK)
+            xml.append(ITEM_RESPROCESSING_END)
+        elif question.type == 'file_upload_question':
+            xml.append(ITEM_RESPROCESSING_START)
+            if question.feedback_raw is not None:
+                xml.append(ITEM_RESPROCESSING_UPLOAD_GENERAL_FEEDBACK)
             xml.append(ITEM_RESPROCESSING_END)
         else:
             raise ValueError
 
-        if question.type in ('true_false_question', 'multiple_choice_question', 'multiple_answers_question', 'numerical_question'):
+        if question.type in ('true_false_question', 'multiple_choice_question', 'multiple_answers_question',
+                             'numerical_question', 'essay_question', 'file_upload_question'):
             if question.feedback_raw is not None:
                 xml.append(ITEM_FEEDBACK_MCTF_MULTANS_NUM_GENERAL.format(feedback=question.feedback_html_xml))
             if question.correct_feedback_raw is not None:
@@ -515,7 +542,7 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
             for choice in question.choices:
                 if choice.feedback_raw is not None:
                     xml.append(ITEM_FEEDBACK_MCTF_MULTANS_NUM_INDIVIDUAL.format(ident=f'text2qti_choice_{choice.id}',
-                                                                    feedback=choice.feedback_html_xml))
+                                                                                feedback=choice.feedback_html_xml))
 
         xml.append(END_ITEM)
 

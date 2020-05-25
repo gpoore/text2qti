@@ -2,12 +2,13 @@
 
 text2qti converts
 [Markdown](https://daringfireball.net/projects/markdown/)-based plain text
-files into quizzes in QTI format, which can be imported by
+files into quizzes in QTI format (version 1.2), which can be imported by
 [Canvas](https://www.instructure.com/canvas/) and other educational software.
-It supports multiple-choice, true/false, multiple-answers, numerical, and
-essay questions.  It includes basic support for LaTeX math within Markdown,
-and allows a limited subset of [siunitx](https://ctan.org/pkg/siunitx)
-notation for units and for numbers in scientific notation.
+It supports multiple-choice, true/false, multiple-answers, numerical, essay,
+and file-upload questions.  It includes basic support for LaTeX math within
+Markdown, and allows a limited subset of
+[siunitx](https://ctan.org/pkg/siunitx) notation for units and for numbers in
+scientific notation.
 
 
 
@@ -93,14 +94,22 @@ must be greater than or equal to 0.0001 (1e-4).
 =   5
 ```
 
-
 **Essay questions** are indicated by a sequence of three or more underscores.
-They do not support feedback.
+They only support general question feedback.
 
 ```
 1.  Write an essay.
+... General question feedback.
 ____
-````
+```
+
+**File-upload questions** are indicated by a sequence of three or more
+circumflex accents.  They only support general question feedback.
+```
+1.  Upload a file.
+... General question feedback.
+^^^^
+```
 
 
 **Text regions** outside of questions are supported.  Note that unlike all
