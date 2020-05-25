@@ -4,11 +4,11 @@ text2qti converts
 [Markdown](https://daringfireball.net/projects/markdown/)-based plain text
 files into quizzes in QTI format (version 1.2), which can be imported by
 [Canvas](https://www.instructure.com/canvas/) and other educational software.
-It supports multiple-choice, true/false, multiple-answers, numerical, essay,
-and file-upload questions.  It includes basic support for LaTeX math within
-Markdown, and allows a limited subset of
-[siunitx](https://ctan.org/pkg/siunitx) notation for units and for numbers in
-scientific notation.
+It supports multiple-choice, true/false, multiple-answers, numerical,
+short-answer (fill-in-the-blank), essay, and file-upload questions.  It
+includes basic support for LaTeX math within Markdown, and allows a limited
+subset of [siunitx](https://ctan.org/pkg/siunitx) notation for units and for
+numbers in scientific notation.
 
 
 
@@ -69,7 +69,7 @@ b)  1
 [ ] Smilodon fatalis
 ```
 
-**Numerical questions** are indicated by an equals sign followed by one or
+**Numerical questions** use an equals sign followed by one or
 more spaces or tabs followed by the numerical answer.  Acceptable answers can
 be designated as a range of the form `[<min>, <max>]` or as a correct answer
 with a specified acceptable margin of error `<ans> +- <margin>`.  When the
@@ -94,6 +94,18 @@ must be greater than or equal to 0.0001 (1e-4).
 =   5
 ```
 
+**Short-answer (fill-in-the-blank) questions** use an asterisk followed by one
+or more spaces or tabs followed by an answer.  Multiple acceptable answers can
+be given.  Answers are restricted to a single line each.
+```
+1.  Who lives at the North Pole?
+*   Santa
+*   Santa Claus
+*   Father Christmas
+*   Saint Nicholas
+*   Saint Nick
+```
+
 **Essay questions** are indicated by a sequence of three or more underscores.
 They only support general question feedback.
 
@@ -110,7 +122,6 @@ circumflex accents.  They only support general question feedback.
 ... General question feedback.
 ^^^^
 ```
-
 
 **Text regions** outside of questions are supported.  Note that unlike all
 other text, titles like text region titles are treated as plain text, not
