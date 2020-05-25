@@ -16,6 +16,7 @@
   as exact answers, rather than being converted into ranges of values.  This
   primarily affects how feedback for incorrect answers is worded (#7).
 * Essay questions now support general feedback.
+* Fixed a bug that prevented incorrect question feedback from working.
 * Relaxed indentation requirements for quiz titles spanning multiple lines.
   Indentation for wrapped lines must now be at least 2 spaces or 1 tab, rather
   than being equivalent to that of the first character in the title.

@@ -212,12 +212,8 @@ class Question(object):
         self.md = md
 
 
-    _no_feedback_question_types = set(['essay_question'])
-
     def append_feedback(self, text: str):
-        if self.type is not None:
-            if self.type in self._no_feedback_question_types:
-                raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
+        if self.type in ('essay_question', 'file_upload_question', 'numerical_question'):
             raise Text2qtiError('Question feedback must immediately follow the question')
         if not self.choices:
             if self.feedback_raw is not None:
@@ -228,24 +224,20 @@ class Question(object):
             self.choices[-1].append_feedback(text)
 
     def append_correct_feedback(self, text: str):
-        if self.type is not None:
-            if self.type in self._no_feedback_question_types:
-                raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
-            raise Text2qtiError('Question feedback must immediately follow the question')
-        if self.choices:
-            raise Text2qtiError('Correct feedback can only be specified for questions, not choices')
+        if self.type in ('essay_question', 'file_upload_question'):
+            raise Text2qtiError(f'Question type "{self.type}" does not support correct feedback')
+        if self.choices or self.type == 'numerical_question':
+            raise Text2qtiError('Correct feedback can only be specified for questions')
         if self.correct_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.correct_feedback_raw = text
         self.correct_feedback_html_xml = self.md.md_to_html_xml(text)
 
     def append_incorrect_feedback(self, text: str):
-        if self.type is not None:
-            if self.type in self._no_feedback_question_types:
-                raise Text2qtiError(f'Question type "{self.type}" does not support feedback')
-            raise Text2qtiError('Question feedback must immediately follow the question')
-        if self.choices:
-            raise Text2qtiError('Incorrect feedback can only be specified for questions, not choices')
+        if self.type in ('essay_question', 'file_upload_question'):
+            raise Text2qtiError(f'Question type "{self.type}" does not support incorrect feedback')
+        if self.choices or self.type == 'numerical_question':
+            raise Text2qtiError('Incorrect feedback can only be specified for questions')
         if self.incorrect_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.incorrect_feedback_raw = text

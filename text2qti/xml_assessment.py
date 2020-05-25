@@ -362,7 +362,7 @@ ITEM_FEEDBACK_MCTF_MULTANS_NUM_INCORRECT = '''\
         <itemfeedback ident="general_incorrect_fb">
           <flow_mat>
             <material>
-              <mattext texttype="text/html">&lt;p&gt;Wrong comment&lt;/p&gt;</mattext>
+              <mattext texttype="text/html">{feedback}</mattext>
             </material>
           </flow_mat>
         </itemfeedback>
