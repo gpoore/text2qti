@@ -1,10 +1,10 @@
 # Change Log
 
 
-## v0.3.0 (2020-??-??)
+## v0.3.0 (2020-05-26)
 
 * Added support for multiple-answers questions.
-* Added support for short-answer questions.
+* Added support for short-answer (fill-in-the-blank) questions.
 * Added support for file-upload questions.
 * Added support for setting question titles and point values (#9).
 * Added support for text regions outside questions.

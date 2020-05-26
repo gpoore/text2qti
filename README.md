@@ -34,7 +34,7 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 [Markdown](https://daringfireball.net/projects/markdown/).
 
 There is also support for a quiz title and description, as well as question
-titles, point values, and feedback.  Note that unlike all other text, titles
+titles, point values, and feedback.  Note that unlike most other text, titles
 like quiz and question titles are treated as plain text, not Markdown, due to
 the QTI format.  Also note that Canvas may ignore the quiz description and
 question titles.  Question point values must be positive integers or
@@ -96,7 +96,8 @@ must be greater than or equal to 0.0001 (1e-4).
 
 **Short-answer (fill-in-the-blank) questions** use an asterisk followed by one
 or more spaces or tabs followed by an answer.  Multiple acceptable answers can
-be given.  Answers are restricted to a single line each.
+be given.  Answers are restricted to a single line each and are treated as
+plain text, not Markdown.
 ```
 1.  Who lives at the North Pole?
 *   Santa
@@ -123,7 +124,7 @@ circumflex accents.  They only support general question feedback.
 ^^^^
 ```
 
-**Text regions** outside of questions are supported.  Note that unlike all
+**Text regions** outside of questions are supported.  Note that unlike most
 other text, titles like text region titles are treated as plain text, not
 Markdown, due to the QTI format.  Also note that Canvas may ignore the text
 region title and only display the text itself.  Text regions are not required
@@ -233,7 +234,7 @@ Quiz title: Title here
 ```
 Otherwise, all quizzes will have the default title "Quiz", so it will be
 difficult to tell them apart.  Another option is to rename quizzes after
-importing them.  Note that unlike all other text, the title is treated as
+importing them.  Note that unlike most other text, the title is treated as
 plain text, not Markdown, due to the QTI format.
 
 When you run `text2qti` for the first time, it will attempt to create a
@@ -288,8 +289,8 @@ END_GROUP
 ```
 
 The number of questions from the group that are used is specified with
-`pick:`.  If this is omitted, it defaults to `1`.  The points assigned per
-question is specified with `points per question:`.  If this is omitted, it
+"`pick:`".  If this is omitted, it defaults to `1`.  The points assigned per
+question is specified with "`points per question:`".  If this is omitted, it
 defaults to `1`.  All questions within a group must be worth the same number
 of points.
 
@@ -349,10 +350,11 @@ text2qti processes almost all text as
 [Markdown](https://daringfireball.net/projects/markdown/), using
 [Python-Markdown](https://python-markdown.github.io/).  (The only exceptions
 are the quiz title, question titles, and text region titles, which are
-processed as plain text due to the QTI format.)  For example, `*emphasized*`
-produces *emphasized* text, which typically appears as italics.  Text can be
-styled using Markdown notation, or with HTML.  Remember to preview quizzes
-after conversion to QTI, especially when using any significant amount of HTML.
+processed as plain text due to the QTI format, plus the acceptable answers
+for short-answer questions.)  For example, `*emphasized*` produces *emphasized*
+text, which typically appears as italics.  Text can be styled using Markdown
+notation, or with HTML.  Remember to preview quizzes after conversion to QTI,
+especially when using any significant amount of HTML.
 
 
 ### Titles
@@ -384,6 +386,9 @@ approach.  For example,
 
     Another paragraph.
 ```
+Note that the acceptable answers for short-answer questions are treated as
+plain text and limited to a single line, and numerical answers are also
+processed specially and limited to a single line.
 
 
 ### Images
