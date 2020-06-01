@@ -1,6 +1,12 @@
 # Change Log
 
 
+## v0.4.0 (dev)
+
+* Fixed catastrophic backtracking in LaTeX math regex (#11).
+
+
+
 ## v0.3.0 (2020-05-26)
 
 * Added support for multiple-answers questions.

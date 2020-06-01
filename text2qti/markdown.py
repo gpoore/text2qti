@@ -396,7 +396,7 @@ class Markdown(object):
 
     html_comment_pattern = r'(?P<html_comment><!--.*?-->)'
     inline_code_pattern = r'(?P<code>(?<!`)(?P<code_delim>`+)(?!`).+?(?<!`)(?P=code_delim)(?!`))'
-    inline_math_pattern = r'(?<!\$)\$(?!\$)(?P<math>[^ \t\n](?:[^$\n]+|\n[ \t]*[^$\n]+)*)(?<![ \t\n])\$(?!\$)'
+    inline_math_pattern = r'(?<!\$)\$(?!\$)(?P<math>[^ \t\n](?:[^$\n]|\n[ \t]*[^ \t$\n])*)(?<![ \t\n])\$(?!\$)'
     html_comment_or_inline_code_math_siunitx_re = re.compile('|'.join([html_comment_pattern,
                                                                        inline_code_pattern,
                                                                        inline_math_pattern,
