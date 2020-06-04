@@ -394,25 +394,52 @@ class Markdown(object):
         return self.siunitx_latex_macros_re.sub(lambda match: self._siunitx_dispatch(match, in_math), string)
 
 
-    html_comment_pattern = r'(?P<html_comment><!--.*?-->)'
-    inline_code_pattern = r'(?P<code>(?<!`)(?P<code_delim>`+)(?!`).+?(?<!`)(?P=code_delim)(?!`))'
-    inline_math_pattern = r'(?<!\$)\$(?!\$)(?P<math>[^ \t\n](?:[^$\n]|\n[ \t]*[^ \t$\n])*)(?<![ \t\n])\$(?!\$)'
-    html_comment_or_inline_code_math_siunitx_re = re.compile('|'.join([html_comment_pattern,
-                                                                       inline_code_pattern,
-                                                                       inline_math_pattern,
-                                                                       siunitx_latex_macros_pattern]))
+    skip = r'(?P<skip>\\.|\\\n|\$\$+(?!\$))'
+    html_comment_pattern = r'(?P<html_comment><!--(?:.|\n)*?-->)'
+    block_code_pattern = (
+        r'^(?P<block_code>'
+        r'(?P<indent>[ \t]*)(?P<block_code_delim>```+(?!`)|~~~+(?!~)).*?\n'
+        r'(?:[ \t]*\n|(?P=indent).*\n)*?'
+        r'(?P=indent)(?P=block_code_delim)[ \t]*(?:\n|$)'
+        r')'
+    )
+    inline_code_pattern = (
+        r'(?P<inline_code>'
+        r'(?P<inline_code_delim>`+(?!`))'
+        r'(?:.|\n[ \t]*(?![ \t\n]))+?'
+        r'(?<!`)(?P=inline_code_delim)(?!`)'
+        r')'
+    )
+    inline_math_pattern = (
+        r'\$(?=[^ \t\n])'
+        r'(?P<math>(?:[^$\n\\]|\\.|\\?\n[ \t]*(?:[^ \t\n$]))+)'
+        r'(?<![ \t\n])\$(?!\$)'
+    )
+    patterns = '|'.join([
+        block_code_pattern,
+        siunitx_latex_macros_pattern,
+        skip,
+        html_comment_pattern,
+        inline_code_pattern,
+        inline_math_pattern,
+    ])
+    skip_or_html_comment_or_code_math_siunitx_re = re.compile(patterns, re.MULTILINE)
 
     def _html_comment_or_inline_code_math_siunitx_dispatch(self, match: typing.Match[str]) -> str:
         '''
         Process LaTeX math and siunitx regex matches into Canvas image tags,
-        while stripping HTML comments and leaving inline code matches
-        unchanged.
+        while stripping HTML comments and leaving things like backslash
+        escapes and code unchanged.
         '''
         lastgroup = match.lastgroup
         if lastgroup == 'html_comment':
             return ''
-        if lastgroup == 'code_delim':
-            return match.group('code')
+        if lastgroup == 'skip':
+            return match.group('skip')
+        if lastgroup == 'block_code':
+            return match.group('block_code')
+        if lastgroup == 'inline_code':
+            return match.group('inline_code')
         if lastgroup == 'math':
             math = match.group('math')
             math = math.replace('\n ', ' ').replace('\n', ' ')
@@ -431,7 +458,7 @@ class Markdown(object):
         Convert all siunitx macros in a string into plain LaTeX.  Then convert
         this LaTeX and all $-delimited LaTeX into Canvas img tags.
         '''
-        return self.html_comment_or_inline_code_math_siunitx_re.sub(self._html_comment_or_inline_code_math_siunitx_dispatch, string)
+        return self.skip_or_html_comment_or_code_math_siunitx_re.sub(self._html_comment_or_inline_code_math_siunitx_dispatch, string)
 
     def md_to_html_xml(self, markdown_string: str, strip_p_tags: bool=False) -> str:
         '''

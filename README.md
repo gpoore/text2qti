@@ -356,6 +356,10 @@ text, which typically appears as italics.  Text can be styled using Markdown
 notation, or with HTML.  Remember to preview quizzes after conversion to QTI,
 especially when using any significant amount of HTML.
 
+While indented Markdown code blocks are supported, fenced code blocks should
+be preferred.  Indented code can interfere with the preprocessor that strips
+HTML comments and handles LaTeX math and siunitx notation.
+
 
 ### Titles
 

@@ -3,7 +3,11 @@
 
 ## v0.4.0 (dev)
 
-* Fixed catastrophic backtracking in LaTeX math regex (#11).
+* Improved preprocessing for siunitx notation, LaTeX math, and HTML comments.
+  Fixed catastrophic backtracking in LaTeX math regex (#11).  Added support
+  for newlines in HTML comments.  The preprocessor now skips backslash
+  escapes, inline code containing newlines, and fenced code blocks (as long as
+  they do not start on the same line as a list marker).
 
 
 
