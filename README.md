@@ -356,6 +356,34 @@ text, which typically appears as italics.  Text can be styled using Markdown
 notation, or with HTML.  Remember to preview quizzes after conversion to QTI,
 especially when using any significant amount of HTML.
 
+Python-Markdown provides several
+[extensions to basic Markdown](https://python-markdown.github.io/extensions/).
+Currently, the following extensions are enabled:
+* `smarty`:  Automatic curly quotation marks and dashes.
+* `sane_lists`:  List behavior is closer to what might be expected.
+* `def_list`:  Definition lists of this form:
+  ```
+  term
+  :   definition
+* `fenced_code`:  Fenced code blocks (` ``` ` or `~~~`).
+* `footnotes`:  Footnotes using this form:
+  ```
+  Normal text [^1].
+
+  [^1]: Footnote text.
+* `tables`:  Tables of this form:
+  ```
+  Header | Header
+  ------ | ------
+  Cell   | Cell
+  Cell   | Cell
+  ```
+* `md_in_html`:  Text inside HTML tags is treated as Markdown.  This requires
+  setting the attribute `markdown="1"` in the opening tag for block-level
+  elements.  See the
+  [documentation](https://python-markdown.github.io/extensions/md_in_html/)
+  for more details about proper usage and potential issues.
+
 While indented Markdown code blocks are supported, fenced code blocks should
 be preferred.  Indented code can interfere with the preprocessor that strips
 HTML comments and handles LaTeX math and siunitx notation.

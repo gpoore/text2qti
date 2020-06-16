@@ -8,6 +8,7 @@
   for newlines in HTML comments.  The preprocessor now skips backslash
   escapes, inline code containing newlines, and fenced code blocks (as long as
   they do not start on the same line as a list marker).
+* Python-Markdown's Markdown-in-HTML extension is now enabled (#13).
 
 
 

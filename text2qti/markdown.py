@@ -108,7 +108,15 @@ class Markdown(object):
     def __init__(self, config: Config):
         self.config = config
 
-        md_extensions = ['smarty', 'sane_lists', 'def_list', 'fenced_code', 'footnotes', 'tables']
+        md_extensions = [
+            'smarty',
+            'sane_lists',
+            'def_list',
+            'fenced_code',
+            'footnotes',
+            'tables',
+            'md_in_html',
+        ]
         markdown_processor = markdown.Markdown(extensions=md_extensions)
         markdown_image_processor = Text2qtiImagePattern(IMAGE_LINK_RE, markdown_processor, self)
         markdown_processor.inlinePatterns.register(markdown_image_processor, 'image_link', 150)
