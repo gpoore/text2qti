@@ -57,6 +57,10 @@ start_patterns = {
     'group_points_per_question': r'[Pp]oints per question:',
     'start_code': r'```+\s*\S.*',
     'end_code': r'```+',
+    'quiz_shuffle_answers': r'[Ss]huffle answers:',
+    'quiz_show_correct_answers': r'[Ss]how correct answers:',
+    'quiz_one_question_at_a_time': r'[Oo]ne question at a time:',
+    'quiz_cant_go_back': r'''[Cc]an't go back:''',
 }
 # comments are currently handled separately from content
 comment_patterns = {
@@ -67,11 +71,14 @@ comment_patterns = {
 # whether regex needs to check after pattern for content on the same line
 no_content = set(['essay', 'upload', 'start_group', 'end_group', 'start_code', 'end_code'])
 # whether parser needs to check for multi-line content
+single_line = set(['question_points', 'group_pick', 'group_points_per_question',
+                   'numerical', 'shortans_correct_choice',
+                   'quiz_shuffle_answers', 'quiz_show_correct_answers',
+                   'quiz_one_question_at_a_time', 'quiz_cant_go_back'])
 multi_line = set([x for x in start_patterns
-                  if x not in no_content and not any(y in x for y in ('pick', 'points', 'numerical', 'shortans'))])
+                  if x not in no_content and x not in single_line])
 # whether parser needs to check for multi-paragraph content
-multi_para = set([x for x in start_patterns
-                  if x not in no_content and not any(y in x for y in ('title', 'pick', 'points', 'numerical'))])
+multi_para = set([x for x in multi_line if 'title' not in x])
 start_re = re.compile('|'.join(r'(?P<{0}>{1}[ \t]+(?=\S))'.format(name, pattern)
                                if name not in no_content else
                                r'(?P<{0}>{1}\s*)$'.format(name, pattern)
@@ -419,7 +426,7 @@ class Question(object):
 
     def finalize(self):
         if self.type is None:
-            if len(self.choices) == 2 and all(c.choice_raw.lower() in ('true', 'false') for c in self.choices):
+            if len(self.choices) == 2 and all(c.choice_raw in ('true', 'True', 'false', 'False') for c in self.choices):
                 self.type = 'true_false_question'
             else:
                 self.type = 'multiple_choice_question'
@@ -542,6 +549,14 @@ class Quiz(object):
         self.title_xml = 'Quiz'
         self.description_raw = None
         self.description_html_xml = ''
+        self.shuffle_answers_raw = None
+        self.shuffle_answers_xml = 'false'
+        self.show_correct_answers_raw = None
+        self.show_correct_answers_xml = 'true'
+        self.one_question_at_a_time_raw = None
+        self.one_question_at_a_time_xml = 'false'
+        self.cant_go_back_raw = None
+        self.cant_go_back_xml = 'false'
         self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd, TextRegion]] = []
         self._current_group: Optional[Group] = None
         # The set for detecting duplicate questions uses the XML version of
@@ -720,8 +735,10 @@ class Quiz(object):
             raise Text2qtiError(f'Failed to decode output of executed code:\n{e}')
         return stdout_str
 
-
     def append_quiz_title(self, text: str):
+        if any(x is not None for x in (self.shuffle_answers_raw, self.show_correct_answers_raw,
+                                       self.one_question_at_a_time_raw, self.cant_go_back_raw)):
+            raise Text2qtiError('Must give quiz title before quiz options')
         if self._next_question_attr:
             raise Text2qtiError('Expected question; question title and/or points were set but not used')
         if self.title_raw is not None:
@@ -734,6 +751,9 @@ class Quiz(object):
         self.title_xml = self.md.xml_escape(text)
 
     def append_quiz_description(self, text: str):
+        if any(x is not None for x in (self.shuffle_answers_raw, self.show_correct_answers_raw,
+                                       self.one_question_at_a_time_raw, self.cant_go_back_raw)):
+            raise Text2qtiError('Must give quiz description before quiz options')
         if self._next_question_attr:
             raise Text2qtiError('Expected question; question title and/or points were set but not used')
         if self.description_raw is not None:
@@ -742,6 +762,56 @@ class Quiz(object):
             raise Text2qtiError('Must give quiz description before questions')
         self.description_raw = text
         self.description_html_xml = self.md.md_to_html_xml(text)
+
+    def append_quiz_shuffle_answers(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.shuffle_answers_raw is not None:
+            raise Text2qtiError('Quiz option "Shuffle answers" has already been set')
+        if text not in ('true', 'True', 'false', 'False'):
+            raise Text2qtiError('Expected option value "true" or "false"')
+        self.shuffle_answers_raw = text
+        self.shuffle_answers_xml = text.lower()
+
+    def append_quiz_show_correct_answers(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.show_correct_answers_raw is not None:
+            raise Text2qtiError('Quiz option "Show correct answers" has already been set')
+        if text not in ('true', 'True', 'false', 'False'):
+            raise Text2qtiError('Expected option value "true" or "false"')
+        self.show_correct_answers_raw = text
+        self.show_correct_answers_xml = text.lower()
+
+    def append_quiz_one_question_at_a_time(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.one_question_at_a_time_raw is not None:
+            raise Text2qtiError('Quiz option "One question at a time" has already been set')
+        if text not in ('true', 'True', 'false', 'False'):
+            raise Text2qtiError('Expected option value "true" or "false"')
+        self.one_question_at_a_time_raw = text
+        self.one_question_at_a_time_xml = text.lower()
+
+    def append_quiz_cant_go_back(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.cant_go_back_raw is not None:
+            raise Text2qtiError('''Quiz option "Can't go back" has already been set''')
+        if text not in ('true', 'True', 'false', 'False'):
+            raise Text2qtiError('Expected option value "true" or "false"')
+        if self.one_question_at_a_time_xml != 'true':
+            raise Text2qtiError('''Must set "One question at a time" to "true" before setting "Can't go back"''')
+        self.cant_go_back_raw = text
+        self.cant_go_back_xml = text.lower()
 
     def append_text_title(self, text: str):
         if self._next_question_attr:

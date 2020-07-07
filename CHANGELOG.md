@@ -9,6 +9,9 @@
   escapes, inline code containing newlines, and fenced code blocks (as long as
   they do not start on the same line as a list marker).
 * Python-Markdown's Markdown-in-HTML extension is now enabled (#13).
+* Added quiz options `Shuffle answers`, `Show correct answers`,
+  `One question at a time`, and `Can't go back` (#10).  These options may be
+  ignored by Canvas, but may work with some other systems.
 
 
 

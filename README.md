@@ -36,8 +36,8 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 There is also support for a quiz title and description, as well as question
 titles, point values, and feedback.  Note that unlike most other text, titles
 like quiz and question titles are treated as plain text, not Markdown, due to
-the QTI format.  Also note that Canvas may ignore the quiz description and
-question titles.  Question point values must be positive integers or
+the QTI format.  **Also note that Canvas may ignore the quiz description and
+question titles.**  Question point values must be positive integers or
 half-integers.
 
 ```
@@ -340,6 +340,20 @@ detected by `text2qti` and an error will be reported.  Questions or choices
 that may be equivalent, but are not represented by exactly the same text,
 cannot be detected (for example, things like `100` versus `1e2`, or `answer`
 versus `Answer`).
+
+
+### Additional quiz options
+
+There are additional quiz options that can be set immediately after the quiz
+title and quiz description.  **These options may be ignored by Canvas, but may
+work with some other systems.**  These all take values `true` or `false`.  For
+example, `Shuffle answers: true` could be on the line right after the quiz
+description.
+* `Shuffle answers` — Shuffle answer order for questions.
+* `Show correct answers` — Show correct answers after submission.
+* `One question at a time` — Only show one question at a time.
+* `Can't go back` — Don't allow going back to the previous question when in
+  `One question at a time` mode.
 
 
 
