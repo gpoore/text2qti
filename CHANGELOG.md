@@ -1,7 +1,7 @@
 # Change Log
 
 
-## v0.4.0 (dev)
+## v0.4.0 (2020-07-17)
 
 * Improved preprocessing for siunitx notation, LaTeX math, and HTML comments.
   Fixed catastrophic backtracking in LaTeX math regex (#11).  Added support
