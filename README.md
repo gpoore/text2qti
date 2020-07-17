@@ -36,9 +36,9 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 There is also support for a quiz title and description, as well as question
 titles, point values, and feedback.  Note that unlike most other text, titles
 like quiz and question titles are treated as plain text, not Markdown, due to
-the QTI format.  **Also note that Canvas may ignore the quiz description and
-question titles.**  Question point values must be positive integers or
-half-integers.
+the QTI format.  **Also note that Canvas apparently ignores the quiz
+description and question titles.**  Question point values must be positive
+integers or half-integers.
 
 ```
 Quiz title: Addition
@@ -126,10 +126,10 @@ circumflex accents.  They only support general question feedback.
 
 **Text regions** outside of questions are supported.  Note that unlike most
 other text, titles like text region titles are treated as plain text, not
-Markdown, due to the QTI format.  Also note that Canvas may ignore the text
-region title and only display the text itself.  Text regions are not required
-to have both a title and text; either may be used alone, but the title must come
-first when both are present.
+Markdown, due to the QTI format.  Also note that Canvas apparently ignores the
+text region title and only displays the text itself.  Text regions are not
+required to have both a title and text; either may be used alone, but the
+title must come first when both are present.
 ```
 Text title:  Instructions about the next questions
 Text:  General comments about the next questions.
@@ -345,10 +345,10 @@ versus `Answer`).
 ### Additional quiz options
 
 There are additional quiz options that can be set immediately after the quiz
-title and quiz description.  **These options may be ignored by Canvas, but may
-work with some other systems.**  These all take values `true` or `false`.  For
-example, `Shuffle answers: true` could be on the line right after the quiz
-description.
+title and quiz description.  **These options are apparently ignored by Canvas,
+but may work with some other systems.**  These all take values `true` or
+`false`.  For example, `Shuffle answers: true` could be on the line right
+after the quiz description.
 * `Shuffle answers` — Shuffle answer order for questions.
 * `Show correct answers` — Show correct answers after submission.
 * `One question at a time` — Only show one question at a time.

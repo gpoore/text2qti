@@ -11,8 +11,10 @@
   handles the escape `\$` itself, since Python-Markdown ignores it (#14).
 * Python-Markdown's Markdown-in-HTML extension is now enabled (#13).
 * Added quiz options `Shuffle answers`, `Show correct answers`,
-  `One question at a time`, and `Can't go back` (#10).  These options may be
-  ignored by Canvas, but may work with some other systems.
+  `One question at a time`, and `Can't go back` (#10).  These options are
+  apparently ignored by Canvas, but may work with some other systems.
+* Revised README to clarify that some features are apparently not supported
+  by Canvas (#16).
 
 
 
