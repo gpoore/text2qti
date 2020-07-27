@@ -1,14 +1,20 @@
 # Change Log
 
 
-## v0.4.0 (dev)
+## v0.4.0 (2020-07-17)
 
 * Improved preprocessing for siunitx notation, LaTeX math, and HTML comments.
   Fixed catastrophic backtracking in LaTeX math regex (#11).  Added support
   for newlines in HTML comments.  The preprocessor now skips backslash
   escapes, inline code containing newlines, and fenced code blocks (as long as
-  they do not start on the same line as a list marker).
+  they do not start on the same line as a list marker).  The preprocessor now
+  handles the escape `\$` itself, since Python-Markdown ignores it (#14).
 * Python-Markdown's Markdown-in-HTML extension is now enabled (#13).
+* Added quiz options `Shuffle answers`, `Show correct answers`,
+  `One question at a time`, and `Can't go back` (#10).  These options are
+  apparently ignored by Canvas, but may work with some other systems.
+* Revised README to clarify that some features are apparently not supported
+  by Canvas (#16).
 
 
 

@@ -402,6 +402,7 @@ class Markdown(object):
         return self.siunitx_latex_macros_re.sub(lambda match: self._siunitx_dispatch(match, in_math), string)
 
 
+    escape = r'(?P<escape>\\\$)'
     skip = r'(?P<skip>\\.|\\\n|\$\$+(?!\$))'
     html_comment_pattern = r'(?P<html_comment><!--(?:.|\n)*?-->)'
     block_code_pattern = (
@@ -426,6 +427,7 @@ class Markdown(object):
     patterns = '|'.join([
         block_code_pattern,
         siunitx_latex_macros_pattern,
+        escape,
         skip,
         html_comment_pattern,
         inline_code_pattern,
@@ -442,6 +444,8 @@ class Markdown(object):
         lastgroup = match.lastgroup
         if lastgroup == 'html_comment':
             return ''
+        if lastgroup == 'escape':
+            return match.group('escape')[1:]
         if lastgroup == 'skip':
             return match.group('skip')
         if lastgroup == 'block_code':

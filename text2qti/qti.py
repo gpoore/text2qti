@@ -36,13 +36,17 @@ class QTI(object):
                                            dependency_identifier=self.dependency_identifier,
                                            images=self.quiz.images)
         self.assessment_meta = assessment_meta(assessment_identifier=self.assessment_identifier,
-                                               assignment_identifier=self.assessment_identifier,
+                                               assignment_identifier=self.assignment_identifier,
                                                assignment_group_identifier=self.assignment_group_identifier,
                                                title_xml=quiz.title_xml,
                                                description_html_xml=quiz.description_html_xml,
-                                               points_possible=quiz.points_possible)
+                                               points_possible=quiz.points_possible,
+                                               shuffle_answers=quiz.shuffle_answers_xml,
+                                               show_correct_answers=quiz.show_correct_answers_xml,
+                                               one_question_at_a_time=quiz.one_question_at_a_time_xml,
+                                               cant_go_back=quiz.cant_go_back_xml)
         self.assessment = assessment(quiz=quiz,
-                                     assessment_identifier=self.assignment_identifier,
+                                     assessment_identifier=self.assessment_identifier,
                                      title_xml=quiz.title_xml)
 
 

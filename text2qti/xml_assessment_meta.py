@@ -8,26 +8,29 @@
 #
 
 
+from typing import Union
+
+
 TEMPLATE = '''\
 <?xml version="1.0" encoding="UTF-8"?>
 <quiz identifier="{assessment_identifier}" xmlns="http://canvas.instructure.com/xsd/cccv1p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://canvas.instructure.com/xsd/cccv1p0 https://canvas.instructure.com/xsd/cccv1p0.xsd">
   <title>{title}</title>
   <description>{description}</description>
-  <shuffle_answers>false</shuffle_answers>
+  <shuffle_answers>{shuffle_answers}</shuffle_answers>
   <scoring_policy>keep_highest</scoring_policy>
-  <hide_results></hide_results>
+  <hide_results>{hide_results}</hide_results>
   <quiz_type>assignment</quiz_type>
   <points_possible>{points_possible:.1f}</points_possible>
   <require_lockdown_browser>false</require_lockdown_browser>
   <require_lockdown_browser_for_results>false</require_lockdown_browser_for_results>
   <require_lockdown_browser_monitor>false</require_lockdown_browser_monitor>
   <lockdown_browser_monitor_data/>
-  <show_correct_answers>true</show_correct_answers>
+  <show_correct_answers>{show_correct_answers}</show_correct_answers>
   <anonymous_submissions>false</anonymous_submissions>
   <could_be_locked>false</could_be_locked>
   <allowed_attempts>1</allowed_attempts>
-  <one_question_at_a_time>false</one_question_at_a_time>
-  <cant_go_back>false</cant_go_back>
+  <one_question_at_a_time>{one_question_at_a_time}</one_question_at_a_time>
+  <cant_go_back>{cant_go_back}</cant_go_back>
   <available>false</available>
   <one_time_results>false</one_time_results>
   <show_correct_answers_last_attempt>false</show_correct_answers_last_attempt>
@@ -86,7 +89,11 @@ def assessment_meta(*,
                     assignment_identifier: str,
                     title_xml: str,
                     description_html_xml: str,
-                    points_possible: int) -> str:
+                    points_possible: Union[int, float],
+                    shuffle_answers: str,
+                    show_correct_answers: str,
+                    one_question_at_a_time: str,
+                    cant_go_back: str) -> str:
     '''
     Generate `assessment_meta.xml`.
     '''
@@ -95,4 +102,9 @@ def assessment_meta(*,
                            assignment_group_identifier=assignment_group_identifier,
                            title=title_xml,
                            description=description_html_xml,
-                           points_possible=points_possible)
+                           points_possible=points_possible,
+                           shuffle_answers=shuffle_answers,
+                           show_correct_answers=show_correct_answers,
+                           hide_results='always' if show_correct_answers == 'false' else '',
+                           one_question_at_a_time=one_question_at_a_time,
+                           cant_go_back=cant_go_back)
