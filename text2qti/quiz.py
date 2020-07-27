@@ -73,7 +73,10 @@ comment_patterns = {
     'line_comment': r'%',
 }
 # whether this question is a multiple dropdown / fill in multiple blanks
-question_has_reference_words_re = re.compile(r'\(\([^((]*\)\)')
+# for using (( )) to mark reference words
+# question_has_reference_words_re = re.compile(r'\(\([^((]*\)\)')
+# for using [ ] to mark reference words
+question_has_reference_words_re = re.compile(r'\[[^\[\]]*\]')
 # whether regex needs to check after pattern for content on the same line
 no_content = set(['essay', 'upload', 'start_group', 'end_group', 'start_code', 'end_code'])
 # whether parser needs to check for multi-line content
@@ -97,8 +100,10 @@ start_missing_whitespace_re = re.compile('|'.join(r'(?P<{0}>{1}(?=\S))'.format(n
                                                   if name not in no_content))
 start_code_supported_info_re = re.compile(r'\{\s*\.[a-zA-Z](?:[a-zA-Z0-9]+|(?:_+|-+)[a-zA-Z0-9]+)*\s+\.run\s*\}$')
 int_re = re.compile('(?:0|[+-]?[1-9](?:[0-9]+|_[0-9]+)*)$')
-reference_word_re = re.compile(r'\(\([^((]*\)\)')
-
+# for using (( )) to mark reference words
+# reference_word_re = re.compile(r'\(\([^((]*\)\)')
+# for using [ ] to mark reference words
+reference_word_re = re.compile(r'\[[^\[\]]*\]')
 
 
 class TextRegion(object):
@@ -194,14 +199,7 @@ class Question(object):
         else:
             self.title_raw: Optional[str] = title
             self.title_xml = md.xml_escape(title)
-        self.question_raw = text
 
-        # Detecting if the  question is multiple dropdown or fill in multiple blanks
-        self.reference_words_raw = None
-        self.reference_words = None
-        self.num_reference_words = 0
-        reference_words_raw = question_has_reference_words_re.findall(text)
-        self.question_html_xml = md.md_to_html_xml(text)
         self.choices: List[Choice] = []
         # The set for detecting duplicate choices uses the XML version of the
         # choices, to avoid the issue of multiple Markdown representations of
@@ -215,12 +213,20 @@ class Question(object):
         self.numerical_max_html_xml: Optional[str] = None
         self.correct_choices = 0
         self.choice_set_of_ref_word : Dict[str,Set[str]] = None
+        # Detecting if the  question is multiple dropdown or fill in multiple blanks
+        self.reference_words_raw = None
+        self.reference_words = None
+        self.num_reference_words = 0
+        reference_words_raw = question_has_reference_words_re.findall(text)
         if reference_words_raw is not None:
             self.reference_words = set()
             for ref_word_raw in reference_words_raw:
                 # For each reference word found:
                 # 1. Strip the the (triple) parentheses and save
-                ref_word = ref_word_raw.lstrip('(').rstrip(')')
+                # if using (( )) to mark reference words
+                # ref_word = ref_word_raw.lstrip('(').rstrip(')')
+                # if using [ ] to mark reference words
+                ref_word = ref_word_raw.lstrip('[').rstrip(']')
                 if ref_word in self.reference_words:
                     raise Text2qtiError(f'Cannot have duplicated reference words for fill_in_multiple_blank or multiple dropdown question')
                 else:
@@ -233,6 +239,8 @@ class Question(object):
             self.choice_set_of_ref_word = {}
             for ref_word in self.reference_words:
                 self.choice_set_of_ref_word[ref_word] = set()
+        self.question_raw = text
+        self.question_html_xml = md.md_to_html_xml(text)
         if points is None:
             self.points_possible_raw: Optional[str] = None
             self.points_possible: Union[int, float] = 1
@@ -394,10 +402,16 @@ class Question(object):
 
         ref_word_match = reference_word_re.match(text)
         if ref_word_match is None:
-            raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
-        if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+        # for using (( )) to mark reference words
+        #    raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
+        #if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by [ ]')
+        if len(ref_word_match.group(0)) <= 2 : # if reference word is empty: []
             raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
-        ref_word_str = ref_word_match.group(0)[2:-2]
+        # for using (( )) to mark reference words
+        # ref_word_str = ref_word_match.group(0).lstrip('(').rstrip(')')
+        # for using [ ] to mark reference words
+        ref_word_str = ref_word_match.group(0).lstrip('[').rstrip(']')
         text = text[ref_word_match.end():].strip()
 
         choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
@@ -420,10 +434,16 @@ class Question(object):
 
         ref_word_match = reference_word_re.match(text)
         if ref_word_match is None:
-            raise Text2qtiError(f'The answer of multiple_dropdowns question must has reference word surronded by (( ))')
-        if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
-            raise Text2qtiError(f'Reference word cannot be empty in answer of multiple_dropdowns question')
-        ref_word_str = ref_word_match.group(0)[2:-2]
+        # for using (( )) to mark reference words
+        #    raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
+        #if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by [ ]')
+        if len(ref_word_match.group(0)) <= 2 : # if reference word is empty: []
+            raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
+        # for using (( )) to mark reference words
+        # ref_word_str = ref_word_match.group(0).lstrip('(').rstrip(')')
+        # for using [ ] to mark reference words
+        ref_word_str = ref_word_match.group(0).lstrip('[').rstrip(']')
         text = text[ref_word_match.end():].strip()
 
         choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
@@ -446,10 +466,16 @@ class Question(object):
 
         ref_word_match = reference_word_re.match(text)
         if ref_word_match is None:
-            raise Text2qtiError(f'The answer of multiple_dropdowns question must has reference word surronded by (( ))')
-        if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
-            raise Text2qtiError(f'Reference word cannot be empty in answer of multiple_dropdowns question')
-        ref_word_str = ref_word_match.group(0)[2:-2]
+        # for using (( )) to mark reference words
+        #    raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
+        #if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by [ ]')
+        if len(ref_word_match.group(0)) <= 2 : # if reference word is empty: []
+            raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
+        # for using (( )) to mark reference words
+        # ref_word_str = ref_word_match.group(0).lstrip('(').rstrip(')')
+        # for using [ ] to mark reference words
+        ref_word_str = ref_word_match.group(0).lstrip('[').rstrip(']')
         text = text[ref_word_match.end():].strip()
 
         choice = Choice(text, correct=False, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
