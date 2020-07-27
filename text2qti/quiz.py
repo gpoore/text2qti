@@ -41,7 +41,7 @@ start_patterns = {
     'shortans_correct_choice': r'\*',
     'feedback': r'\.\.\.',
     'correct_feedback': r'\+',
-    'incorrect_feedback': r'\-',
+    'incorrect_feedback': r'~',
     'essay': r'___+',
     'upload': r'\^\^\^+',
     'numerical': r'=',
@@ -201,6 +201,20 @@ class Question(object):
         self.reference_words = None
         self.num_reference_words = 0
         reference_words_raw = question_has_reference_words_re.findall(text)
+        self.question_html_xml = md.md_to_html_xml(text)
+        self.choices: List[Choice] = []
+        # The set for detecting duplicate choices uses the XML version of the
+        # choices, to avoid the issue of multiple Markdown representations of
+        # the same XML.
+        self._choice_set: Set[str] = set()
+        self.numerical_min: Optional[Union[int, float]] = None
+        self.numerical_min_html_xml: Optional[str] = None
+        self.numerical_exact: Optional[Union[int, float]] = None
+        self.numerical_exact_html_xml: Optional[str] = None
+        self.numerical_max: Optional[Union[int, float]] = None
+        self.numerical_max_html_xml: Optional[str] = None
+        self.correct_choices = 0
+        self.choice_set_of_ref_word : Dict[str,Set[str]] = None
         if reference_words_raw is not None:
             self.reference_words = set()
             for ref_word_raw in reference_words_raw:
@@ -215,20 +229,10 @@ class Question(object):
                     ref_word_in_html_xml = '[' + ref_word + ']'
                     text = text.replace(ref_word_raw, ref_word_in_html_xml)
                     self.num_reference_words += 1
-
-        self.question_html_xml = md.md_to_html_xml(text)
-        self.choices: List[Choice] = []
-        # The set for detecting duplicate choices uses the XML version of the
-        # choices, to avoid the issue of multiple Markdown representations of
-        # the same XML.
-        self._choice_set: Set[str] = set()
-        self.numerical_min: Optional[Union[int, float]] = None
-        self.numerical_min_html_xml: Optional[str] = None
-        self.numerical_exact: Optional[Union[int, float]] = None
-        self.numerical_exact_html_xml: Optional[str] = None
-        self.numerical_max: Optional[Union[int, float]] = None
-        self.numerical_max_html_xml: Optional[str] = None
-        self.correct_choices = 0
+            # Hashmap of refword -> choice set is initialized. This data structure is used for checking if there is duplicated choices for a ref word
+            self.choice_set_of_ref_word = {}
+            for ref_word in self.reference_words:
+                self.choice_set_of_ref_word[ref_word] = set()
         if points is None:
             self.points_possible_raw: Optional[str] = None
             self.points_possible: Union[int, float] = 1
@@ -397,9 +401,12 @@ class Question(object):
         text = text[ref_word_match.end():].strip()
 
         choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
-        if choice.choice_xml in self._choice_set:
+        prev_choice_set = self.choice_set_of_ref_word[ref_word_str]
+        if choice.choice_xml in prev_choice_set:
             raise Text2qtiError('Duplicate choice for question')
-        self._choice_set.add(choice.choice_xml)
+        prev_choice_set.add(choice.choice_xml)
+        curr_choice_set = prev_choice_set
+        self.choice_set_of_ref_word[ref_word_str] = curr_choice_set
         self.choices.append(choice)
         self.correct_choices += 1
 
@@ -420,9 +427,12 @@ class Question(object):
         text = text[ref_word_match.end():].strip()
 
         choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
-        if choice.choice_xml in self._choice_set:
+        prev_choice_set = self.choice_set_of_ref_word[ref_word_str]
+        if choice.choice_xml in prev_choice_set:
             raise Text2qtiError('Duplicate choice for question')
-        self._choice_set.add(choice.choice_xml)
+        prev_choice_set.add(choice.choice_xml)
+        curr_choice_set = prev_choice_set
+        self.choice_set_of_ref_word[ref_word_str] = curr_choice_set
         self.choices.append(choice)
         self.correct_choices += 1
 
@@ -443,8 +453,12 @@ class Question(object):
         text = text[ref_word_match.end():].strip()
 
         choice = Choice(text, correct=False, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
-        if choice.choice_xml in self._choice_set:
+        prev_choice_set = self.choice_set_of_ref_word[ref_word_str]
+        if choice.choice_xml in prev_choice_set:
             raise Text2qtiError('Duplicate choice for question')
+        prev_choice_set.add(choice.choice_xml)
+        curr_choice_set = prev_choice_set
+        self.choice_set_of_ref_word[ref_word_str] = curr_choice_set
         self._choice_set.add(choice.choice_xml)
         self.choices.append(choice)
 
