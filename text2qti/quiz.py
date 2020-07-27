@@ -61,6 +61,10 @@ start_patterns = {
     'quiz_show_correct_answers': r'[Ss]how correct answers:',
     'quiz_one_question_at_a_time': r'[Oo]ne question at a time:',
     'quiz_cant_go_back': r'''[Cc]an't go back:''',
+    'fimb_ans': r'<>',
+    'muldropd_correct_choice':r'\{\*\}',
+    'muldropd_incorrect_choice':r'\{ ?\}',
+
 }
 # comments are currently handled separately from content
 comment_patterns = {
@@ -68,6 +72,8 @@ comment_patterns = {
     'end_multiline_comment': r'END_COMMENT',
     'line_comment': r'%',
 }
+# whether this question is a multiple dropdown / fill in multiple blanks
+question_has_reference_words_re = re.compile(r'\(\([^((]*\)\)')
 # whether regex needs to check after pattern for content on the same line
 no_content = set(['essay', 'upload', 'start_group', 'end_group', 'start_code', 'end_code'])
 # whether parser needs to check for multi-line content
@@ -91,7 +97,7 @@ start_missing_whitespace_re = re.compile('|'.join(r'(?P<{0}>{1}(?=\S))'.format(n
                                                   if name not in no_content))
 start_code_supported_info_re = re.compile(r'\{\s*\.[a-zA-Z](?:[a-zA-Z0-9]+|(?:_+|-+)[a-zA-Z0-9]+)*\s+\.run\s*\}$')
 int_re = re.compile('(?:0|[+-]?[1-9](?:[0-9]+|_[0-9]+)*)$')
-
+reference_word_re = re.compile(r'\(\([^((]*\)\)')
 
 
 
@@ -143,20 +149,22 @@ class Choice(object):
     The presence of feedback does not affect the id.
     '''
     def __init__(self, text: str, *,
-                 correct: bool, shortans=False,
-                 question_hash_digest: bytes, md: Markdown):
+                 correct: bool, is_shortans_fimb_multidd=False,
+                 question_hash_digest: bytes, md: Markdown,
+                 reference_word=None):
         self.choice_raw = text
-        if shortans:
+        if is_shortans_fimb_multidd:
             self.choice_xml = md.xml_escape(text)
         else:
             self.choice_html_xml = md.md_to_html_xml(text)
+        self.reference_word = reference_word
         self.correct = correct
-        self.shortans = shortans
+        self.shortans = is_shortans_fimb_multidd
         self.feedback_raw: Optional[str] = None
         self.feedback_html_xml: Optional[str] = None
         # ID is based on hash of choice XML as well as question XML.  This
         # gives different IDs for identical choices in different questions.
-        if shortans:
+        if is_shortans_fimb_multidd:
             self.id = hashlib.blake2b(self.choice_xml.encode('utf8'), key=question_hash_digest).hexdigest()[:64]
         else:
             self.id = hashlib.blake2b(self.choice_html_xml.encode('utf8'), key=question_hash_digest).hexdigest()[:64]
@@ -187,6 +195,27 @@ class Question(object):
             self.title_raw: Optional[str] = title
             self.title_xml = md.xml_escape(title)
         self.question_raw = text
+
+        # Detecting if the  question is multiple dropdown or fill in multiple blanks
+        self.reference_words_raw = None
+        self.reference_words = None
+        self.num_reference_words = 0
+        reference_words_raw = question_has_reference_words_re.findall(text)
+        if reference_words_raw is not None:
+            self.reference_words = set()
+            for ref_word_raw in reference_words_raw:
+                # For each reference word found:
+                # 1. Strip the the (triple) parentheses and save
+                ref_word = ref_word_raw.lstrip('(').rstrip(')')
+                if ref_word in self.reference_words:
+                    raise Text2qtiError(f'Cannot have duplicated reference words for fill_in_multiple_blank or multiple dropdown question')
+                else:
+                    self.reference_words.add(ref_word)
+                    # 2. Replace the (triple) parentheses with bracket to match the reference words format on Canvas
+                    ref_word_in_html_xml = '[' + ref_word + ']'
+                    text = text.replace(ref_word_raw, ref_word_in_html_xml)
+                    self.num_reference_words += 1
+
         self.question_html_xml = md.md_to_html_xml(text)
         self.choices: List[Choice] = []
         # The set for detecting duplicate choices uses the XML version of the
@@ -285,7 +314,7 @@ class Question(object):
                 raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         elif self.type != 'short_answer_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support short answer')
-        choice = Choice(text, correct=True, shortans=True, question_hash_digest=self.hash_digest, md=self.md)
+        choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md)
         if choice.choice_xml in self._choice_set:
             raise Text2qtiError('Duplicate choice for question')
         self._choice_set.add(choice.choice_xml)
@@ -350,6 +379,74 @@ class Question(object):
             raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         if any(x is not None for x in (self.correct_feedback_raw, self.incorrect_feedback_raw)):
             raise Text2qtiError(f'Question type "{self.type}" does not support correct/incorrect feedback')
+
+    def append_fimb_ans(self, text: str):
+        if self.type is None:
+            self.type = 'fill_in_multiple_blanks_question'
+            if self.choices:
+                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        elif self.type != 'fill_in_multiple_blanks_question':
+            raise Text2qtiError(f'Question type "{self.type}" does not support short answer')
+
+        ref_word_match = reference_word_re.match(text)
+        if ref_word_match is None:
+            raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
+        if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
+        ref_word_str = ref_word_match.group(0)[2:-2]
+        text = text[ref_word_match.end():].strip()
+
+        choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
+        if choice.choice_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_xml)
+        self.choices.append(choice)
+        self.correct_choices += 1
+
+    def append_muldropd_correct_choice(self, text: str):
+        if self.type is None:
+            self.type = 'multiple_dropdowns_question'
+            if self.choices:
+                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        elif self.type != 'multiple_dropdowns_question':
+            raise Text2qtiError(f'Question type "{self.type}" does not support short answer')
+
+        ref_word_match = reference_word_re.match(text)
+        if ref_word_match is None:
+            raise Text2qtiError(f'The answer of multiple_dropdowns question must has reference word surronded by (( ))')
+        if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            raise Text2qtiError(f'Reference word cannot be empty in answer of multiple_dropdowns question')
+        ref_word_str = ref_word_match.group(0)[2:-2]
+        text = text[ref_word_match.end():].strip()
+
+        choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
+        if choice.choice_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_xml)
+        self.choices.append(choice)
+        self.correct_choices += 1
+
+    def append_muldropd_incorrect_choice(self, text: str):
+        if self.type is None:
+            self.type = 'multiple_dropdowns_question'
+            if self.choices:
+                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        elif self.type != 'multiple_dropdowns_question':
+            raise Text2qtiError(f'Question type "{self.type}" does not support short answer')
+
+        ref_word_match = reference_word_re.match(text)
+        if ref_word_match is None:
+            raise Text2qtiError(f'The answer of multiple_dropdowns question must has reference word surronded by (( ))')
+        if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            raise Text2qtiError(f'Reference word cannot be empty in answer of multiple_dropdowns question')
+        ref_word_str = ref_word_match.group(0)[2:-2]
+        text = text[ref_word_match.end():].strip()
+
+        choice = Choice(text, correct=False, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
+        if choice.choice_xml in self._choice_set:
+            raise Text2qtiError('Duplicate choice for question')
+        self._choice_set.add(choice.choice_xml)
+        self.choices.append(choice)
 
     def append_numerical(self, text: str):
         if self.type is not None:
@@ -448,7 +545,16 @@ class Question(object):
                 raise Text2qtiError('Question must provide more than one choice')
             if self.correct_choices < 1:
                 raise Text2qtiError('Question must specify a correct choice')
-
+        elif self.type == 'fill_in_multiple_blanks_question':
+            # For each reference word in the question, there must be at least one answer for the reference word
+            ref_word_check_set_from_choices = set()
+            for choice in self.choices:
+                ref_word = choice.reference_word
+                if ref_word not in self.reference_words:
+                    raise Text2qtiError('Reference word in the answer is not found in the question')
+                ref_word_check_set_from_choices.add(ref_word)
+            if ref_word_check_set_from_choices != self.reference_words:
+                raise Text2qtiError('All reference words in the question must have at least one corresponding answer')
 
 
 
@@ -1042,3 +1148,33 @@ class Quiz(object):
             if match:
                 raise Text2qtiError(f'Missing content after "{match.group().strip()}"')
             raise Text2qtiError(f'Syntax error; unexpected text, or incorrect indentation for a wrapped paragraph:\n"{text}"')
+
+    def append_fimb_ans(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_fimb_ans(text)
+    
+    def append_muldropd_correct_choice(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_muldropd_correct_choice(text)
+
+    def append_muldropd_incorrect_choice(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a choice without a question')
+        last_question_or_delim.append_muldropd_incorrect_choice(text)
