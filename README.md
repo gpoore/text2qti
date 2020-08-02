@@ -179,6 +179,10 @@ the files, and then run
 ```
 python setup.py install
 ```
+or, to install a local-only version (usually accessible via `~/.local/bin/text2qti`), run
+```
+python setup.py install --user
+```
 Depending on your system, you may need to use `python3` instead of `python`.
 This will often be the case for Linux and OS X.
 
