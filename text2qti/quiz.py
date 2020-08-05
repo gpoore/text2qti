@@ -1075,6 +1075,7 @@ class Quiz(object):
             #raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by [ ]')
         # if there is no reference word, then this answer is a fill in the blank answer
             last_question_or_delim.append_shortans_correct_choice(text)
+            return
         if len(ref_word_match.group(0)) <= 2 : # if reference word is empty: []
             raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
         # for using (( )) to mark reference words
