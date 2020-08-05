@@ -33,12 +33,12 @@ from .markdown import Image, Markdown
 
 # regex patterns for parsing quiz content
 start_patterns = {
-    'question': r'\d+\.',
+    'question': r'Q\.',
     'mctf_correct_choice': r'\*[a-zA-Z]\)',
     'mctf_incorrect_choice': r'[a-zA-Z]\)',
     'multans_correct_choice': r'\[\*\]',
     'multans_incorrect_choice': r'\[ ?\]',
-    'shortans_correct_choice': r'\*',
+    'shortans_correct_choice': r'<>',
     'feedback': r'\.\.\.',
     'correct_feedback': r'\+',
     'incorrect_feedback': r'~',
@@ -61,7 +61,6 @@ start_patterns = {
     'quiz_show_correct_answers': r'[Ss]how correct answers:',
     'quiz_one_question_at_a_time': r'[Oo]ne question at a time:',
     'quiz_cant_go_back': r'''[Cc]an't go back:''',
-    'fimb_ans': r'<>',
     'muldropd_correct_choice':r'\{\*\}',
     'muldropd_incorrect_choice':r'\{ ?\}',
 
@@ -392,7 +391,7 @@ class Question(object):
         if any(x is not None for x in (self.correct_feedback_raw, self.incorrect_feedback_raw)):
             raise Text2qtiError(f'Question type "{self.type}" does not support correct/incorrect feedback')
 
-    def append_fimb_ans(self, text: str):
+    def append_fimb_ans(self, text: str, ref_word:str):
         if self.type is None:
             self.type = 'fill_in_multiple_blanks_question'
             if self.choices:
@@ -400,20 +399,7 @@ class Question(object):
         elif self.type != 'fill_in_multiple_blanks_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support short answer')
 
-        ref_word_match = reference_word_re.match(text)
-        if ref_word_match is None:
-        # for using (( )) to mark reference words
-        #    raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
-        #if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
-            raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by [ ]')
-        if len(ref_word_match.group(0)) <= 2 : # if reference word is empty: []
-            raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
-        # for using (( )) to mark reference words
-        # ref_word_str = ref_word_match.group(0).lstrip('(').rstrip(')')
-        # for using [ ] to mark reference words
-        ref_word_str = ref_word_match.group(0).lstrip('[').rstrip(']')
-        text = text[ref_word_match.end():].strip()
-
+        ref_word_str = ref_word
         choice = Choice(text, correct=True, is_shortans_fimb_multidd=True, question_hash_digest=self.hash_digest, md=self.md, reference_word=ref_word_str)
         prev_choice_set = self.choice_set_of_ref_word[ref_word_str]
         if choice.choice_xml in prev_choice_set:
@@ -1075,7 +1061,23 @@ class Quiz(object):
         last_question_or_delim = self.questions_and_delims[-1]
         if not isinstance(last_question_or_delim, Question):
             raise Text2qtiError('Cannot have an answer without a question')
-        last_question_or_delim.append_shortans_correct_choice(text)
+        ref_word_match = reference_word_re.match(text)
+        if ref_word_match is None:
+        # for using (( )) to mark reference words
+        #    raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by (( ))')
+        #if len(ref_word_match.group(0)) <= 4 : # if reference word is empty: []
+            #raise Text2qtiError(f'The answer of fill_in_multiple_blanks question must has reference word surronded by [ ]')
+        # if there is no reference word, then this answer is a fill in the blank answer
+            last_question_or_delim.append_shortans_correct_choice(text)
+        if len(ref_word_match.group(0)) <= 2 : # if reference word is empty: []
+            raise Text2qtiError(f'Reference word cannot be empty in answer of fill_in_multiple_blanks question')
+        # for using (( )) to mark reference words
+        # ref_word_str = ref_word_match.group(0).lstrip('(').rstrip(')')
+        # for using [ ] to mark reference words
+        ref_word_str = ref_word_match.group(0).lstrip('[').rstrip(']')
+        text = text[ref_word_match.end():].strip()
+        last_question_or_delim.append_fimb_ans(text, ref_word_str)
+        
 
     def append_multans_correct_choice(self, text: str):
         if self._next_question_attr:
@@ -1188,16 +1190,6 @@ class Quiz(object):
             if match:
                 raise Text2qtiError(f'Missing content after "{match.group().strip()}"')
             raise Text2qtiError(f'Syntax error; unexpected text, or incorrect indentation for a wrapped paragraph:\n"{text}"')
-
-    def append_fimb_ans(self, text: str):
-        if self._next_question_attr:
-            raise Text2qtiError('Expected question; question title and/or points were set but not used')
-        if not self.questions_and_delims:
-            raise Text2qtiError('Cannot have a choice without a question')
-        last_question_or_delim = self.questions_and_delims[-1]
-        if not isinstance(last_question_or_delim, Question):
-            raise Text2qtiError('Cannot have a choice without a question')
-        last_question_or_delim.append_fimb_ans(text)
     
     def append_muldropd_correct_choice(self, text: str):
         if self._next_question_attr:
