@@ -708,7 +708,10 @@ class Quiz(object):
         line_comment_pattern = comment_patterns['line_comment']
         n_line_iter = iter(x for x in enumerate(string.splitlines()))
         n, line = next(n_line_iter, (0, None))
+        multi_lines_action = None
         lookahead = False
+        text_lines = None
+        in_multi_lines = False
         n_code_start = 0
         while line is not None:
             match = start_re.match(line)
@@ -743,36 +746,6 @@ class Quiz(object):
                         n_line_iter = itertools.chain(code_n_line_iter, n_line_iter)
                         n, line = next(n_line_iter, (0, None))
                         continue
-                elif action in multi_line:
-                    if start_patterns[action].endswith(':'):
-                        indent_expandtabs = None
-                    else:
-                        indent_expandtabs = ' '*len(line[:match.end()].expandtabs(4))
-                    text_lines = [text]
-                    n, line = next(n_line_iter, (0, None))
-                    line_expandtabs = line.expandtabs(4) if line is not None else None
-                    lookahead = True
-                    while (line is not None and
-                            (not line or line.isspace() or
-                                indent_expandtabs is None or line_expandtabs.startswith(indent_expandtabs))):
-                        if not line or line.isspace():
-                            if action in multi_para:
-                                text_lines.append('')
-                            else:
-                                break
-                        else:
-                            if indent_expandtabs is None:
-                                if not line.startswith(' '):
-                                    break
-                                indent_expandtabs = ' '*(len(line_expandtabs)-len(line_expandtabs.lstrip(' ')))
-                                if len(indent_expandtabs) < 2:
-                                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nIndentation must be at least 2 spaces or 1 tab here')
-                            # The `rstrip()` prevents trailing double
-                            # spaces from becoming `<br />`.
-                            text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
-                        n, line = next(n_line_iter, (0, None))
-                        line_expandtabs = line.expandtabs(4) if line is not None else None
-                    text = '\n'.join(text_lines)
             elif line.startswith(line_comment_pattern):
                 n, line = next(n_line_iter, (0, None))
                 continue
@@ -793,6 +766,39 @@ class Quiz(object):
             else:
                 action = None
                 text = line
+
+            if in_multi_lines:
+                if action is None:
+                    # append the line into current lines array
+                    text_lines.append(line.rstrip())
+                    n, line = next(n_line_iter, (0, None))
+                    if line is not None:
+                        continue
+                    else:
+                        lookahead = True
+                        in_multi_lines = False
+                        text = '\n'.join(text_lines)
+                        action = multi_lines_action
+                else:
+                    lookahead = True
+                    in_multi_lines = False
+                    text = '\n'.join(text_lines)
+                    action = multi_lines_action
+                    multi_lines_action = None
+            else:
+                if action in multi_line:
+                    in_multi_lines = True
+                    multi_lines_action = action
+                    text_lines = [text]
+                    n, line = next(n_line_iter, (0, None))
+                    if line is not None:
+                            continue
+                    else:
+                        lookahead = True
+                        in_multi_lines = False
+                        text = '\n'.join(text_lines)
+                        action = multi_lines_action
+
             try:
                 parse_actions[action](text)
             except Text2qtiError as e:
