@@ -330,6 +330,8 @@ For code to be executed, there are a few requirements:
   the example above, `python` is extracted from the first line
   (` ```{.python .run}`),  code is saved in a temporary file, and then the
   file is executed via `python <file>`.
+* If using Python 3, you may need to set `lang` to `python3`.  On many systems,
+  `python` still refers to Python 2.7
 
 Each code block is executed in its own process, so data and variables are not
 shared between code blocks.
