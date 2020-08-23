@@ -1,6 +1,16 @@
 # Change Log
 
 
+## v0.5.0 (dev)
+
+* Fixed bug caused by swapped identifiers in QTI XML (#18, #19).  Now quiz
+  descriptions work with Canvas and question titles appear in Canvas in the
+  quiz editor (but not in the student view).   The following options now work
+  with Canvas:  `Shuffle answers`, `Show correct answers`,
+  `One question at a time`, and `Can't go back`.
+
+
+
 ## v0.4.0 (2020-07-17)
 
 * Improved preprocessing for siunitx notation, LaTeX math, and HTML comments.

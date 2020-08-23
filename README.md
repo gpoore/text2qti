@@ -36,9 +36,10 @@ be ordered or unique.  The **correct** choice is designated with an asterisk
 There is also support for a quiz title and description, as well as question
 titles, point values, and feedback.  Note that unlike most other text, titles
 like quiz and question titles are treated as plain text, not Markdown, due to
-the QTI format.  **Also note that Canvas apparently ignores the quiz
-description and question titles.**  Question point values must be positive
-integers or half-integers.
+the QTI format.  **Also note that Canvas correctly shows question titles
+within its quiz editor for instructors, but always replaces them with titles
+like "Question 1" in the student view.**  Question point values must be
+positive integers or half-integers.
 
 ```
 Quiz title: Addition
@@ -345,10 +346,9 @@ versus `Answer`).
 ### Additional quiz options
 
 There are additional quiz options that can be set immediately after the quiz
-title and quiz description.  **These options are apparently ignored by Canvas,
-but may work with some other systems.**  These all take values `true` or
-`false`.  For example, `Shuffle answers: true` could be on the line right
-after the quiz description.
+title and quiz description.  These all take values `true` or `false`.  For
+example, `Shuffle answers: true` could be on the line right after the quiz
+description.
 * `Shuffle answers` — Shuffle answer order for questions.
 * `Show correct answers` — Show correct answers after submission.
 * `One question at a time` — Only show one question at a time.
