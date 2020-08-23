@@ -175,13 +175,30 @@ This will often be the case for Linux and OS X.
 ### Installing the development version
 
 If you want to install the development version to use the latest features,
-download `text2qti` from [GitHub](https://github.com/gpoore/text2qti), extract
-the files, and then run
-```
-python setup.py install
-```
-Depending on your system, you may need to use `python3` instead of `python`.
-This will often be the case for Linux and OS X.
+download `text2qti` from [GitHub](https://github.com/gpoore/text2qti) and
+extract the files.  A few different ways to install the development version
+are listed below.  Depending on your system, you may need to use `python3`
+instead of `python` in the commands below.  This will often be the case for
+Linux and OS X.
+
+* You can install using the included `setup.py` by running
+  ```
+  python setup.py install
+  ```
+  Depending on your system configuration, especially if you do not have root
+  or administrator privileges, you may want to
+  [customize the installation location](https://docs.python.org/3.8/install/#alternate-installation-the-user-scheme).
+  For example, you can add `--user` to install under `%APPDATA%\Python` (Windows), `~/.local` (UNIX, and Mac OS X non-framework builds), or
+  `~/Library/Python/<VERSION>` (Mac framework builds):
+  ```
+  python setup.py install --user
+  ```
+* You can install using `pip`.  For example, in the directory with `setup.py`,
+  run this:
+  ```
+  python -m pip install .
+  ```
+
 
 
 

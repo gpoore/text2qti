@@ -9,6 +9,7 @@
   with Canvas:  `Shuffle answers`, `Show correct answers`,
   `One question at a time`, and `Can't go back`.
 
+* README now covers more options for installing the development version (#20).
 
 
 ## v0.4.0 (2020-07-17)
