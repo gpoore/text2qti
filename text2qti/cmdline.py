@@ -90,6 +90,6 @@ def main():
     try:
         quiz = Quiz(text, config=config, source_name=file_path.as_posix())
         qti = QTI(quiz)
-        qti.save(file_path.parent / f'{file_path.stem}.zip')
+        qti.save(f'{file_path.stem}.zip')
     finally:
         os.chdir(cwd)
