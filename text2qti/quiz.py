@@ -231,6 +231,8 @@ class Formula(object):
         }
     
     def __init__(self, formula: str, decimal_places: int):
+        if '**' in formula:
+            raise Text2qtiError(f'Formula contains **, must use ^ for Canvas-compatible formulas.')
         self.formula = formula
         self.decimal_places = decimal_places
         self.delta = 10**(-decimal_places)
@@ -557,6 +559,8 @@ class Question(object):
         vmin = float(parts[1])
         vmax = float(parts[2])
         vdecimals = int(parts[3])
+        if f'[{vname}]' not in self.question_raw:
+            raise Text2qtiError(f'Calculated question defines variable that does not appear in text.')
         self.calculated_varsets.vars.append(CalculatedVar(vname, vmin, vmax, vdecimals))
         
     def append_calculated_answer(self, text: str):
