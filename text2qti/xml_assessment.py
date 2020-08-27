@@ -112,6 +112,8 @@ ITEM_METADATA_ESSAY = ITEM_METADATA_MCTF_SHORTANS_MULTANS_NUM.replace('{original
 
 ITEM_METADATA_UPLOAD = ITEM_METADATA_ESSAY
 
+ITEM_METADATA_CALCULATED = ITEM_METADATA_MCTF_SHORTANS_MULTANS_NUM
+
 ITEM_PRESENTATION_MCTF = '''\
         <presentation>
           <material>
@@ -315,6 +317,8 @@ ITEM_RESPROCESSING_UPLOAD_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEE
 
 ITEM_RESPROCESSING_NUM_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
 
+ITEM_RESPROCESSING_CALCULATED_GENERAL_FEEDBACK = ITEM_RESPROCESSING_MCTF_GENERAL_FEEDBACK
+
 ITEM_RESPROCESSING_NUM_RANGE_SET_CORRECT_WITH_FEEDBACK = '''\
           <respcondition continue="No">
             <conditionvar>
@@ -368,6 +372,23 @@ ITEM_RESPROCESSING_NUM_EXACT_SET_CORRECT_NO_FEEDBACK = '''\
 '''
 
 ITEM_RESPROCESSING_NUM_INCORRECT_FEEDBACK = ITEM_RESPROCESSING_MCTF_INCORRECT_FEEDBACK
+
+ITEM_RESPROCESSING_CALCULATED = '''\
+          <respcondition title="correct">
+            <conditionvar>
+              <other/>
+            </conditionvar>
+            <setvar varname="SCORE" action="Set">100</setvar>
+          </respcondition>
+          <respcondition title="incorrect">
+            <conditionvar>
+              <not>
+                <other/>
+              </not>
+            </conditionvar>
+            <setvar varname="SCORE" action="Set">0</setvar>
+          </respcondition>
+'''
 
 ITEM_RESPROCESSING_ESSAY = '''\
           <respcondition continue="No">
@@ -470,8 +491,11 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
         elif question.type == 'file_upload_question':
             item_metadata = ITEM_METADATA_UPLOAD
             original_answer_ids = f'text2qti_upload_{question.id}'
+        elif question.type == 'calculated_question':
+            item_metadata = ITEM_METADATA_CALCULATED
+            original_answer_ids = ','.join(f'{vset_id}' for vset_id in question.calculated_varsets.ids)
         else:
-            raise ValueError
+            raise ValueError(f"Unknown question type {question.type}")
         xml.append(item_metadata.format(question_type=question.type,
                                         points_possible=question.points_possible,
                                         original_answer_ids=original_answer_ids,
@@ -497,6 +521,8 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
             xml.append(ITEM_PRESENTATION_ESSAY.format(question_html_xml=question.question_html_xml))
         elif question.type == 'file_upload_question':
             xml.append(ITEM_PRESENTATION_UPLOAD.format(question_html_xml=question.question_html_xml))
+        elif question.type == 'calculated_question':
+            xml.append(ITEM_PRESENTATION_NUM.format(question_html_xml=question.question_html_xml))
         else:
             raise ValueError
 
@@ -595,12 +621,19 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
             if question.feedback_raw is not None:
                 xml.append(ITEM_RESPROCESSING_UPLOAD_GENERAL_FEEDBACK)
             xml.append(ITEM_RESPROCESSING_END)
+        elif question.type == 'calculated_question':
+            xml.append(ITEM_RESPROCESSING_START)
+            xml.append(ITEM_RESPROCESSING_CALCULATED)
+            if question.feedback_raw is not None:
+                xml.append(ITEM_RESPROCESSING_CALCULATED_GENERAL_FEEDBACK)
+            xml.append(ITEM_RESPROCESSING_END)
         else:
             raise ValueError
 
         if question.type in ('true_false_question', 'multiple_choice_question',
                              'short_answer_question', 'multiple_answers_question',
-                             'numerical_question', 'essay_question', 'file_upload_question'):
+                             'numerical_question', 'essay_question', 'file_upload_question',
+                             'calculated_question'):
             if question.feedback_raw is not None:
                 xml.append(ITEM_FEEDBACK_MCTF_SHORTANS_MULTANS_NUM_GENERAL.format(feedback=question.feedback_html_xml))
             if question.correct_feedback_raw is not None:
