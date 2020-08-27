@@ -445,8 +445,49 @@ ITEM_FEEDBACK_MCTF_SHORTANS_MULTANS_NUM_INDIVIDUAL = '''\
         </itemfeedback>
 '''
 
+ITEMPROC_EXTENSION_CALCULATED_START = '''\
+          <itemproc_extension>
+            <calculated>
+              <answer_tolerance>{answer_tolerance}</answer_tolerance>
+              <formulas decimal_places="{decimal_places}">
+                <formula>{formula}</formula>
+              </formulas>
+              <vars>
+'''
 
+ITEMPROC_EXTENSION_CALCULATED_VAR = '''\
+                <var name="{name}" scale="{scale}">
+                  <min>{minimum}</min>
+                  <max>{maximum}</max>
+                </var>
+'''
 
+ITEMPROC_EXTENSION_CALCULATED_MIDDLE = '''\
+              </vars>
+              <var_sets>
+'''
+
+ITEMPROC_EXTENSION_CALCULATED_VAR_SET_START = '''\
+                <var_set ident="{ident}">
+'''
+
+ITEMPROC_EXTENSION_CALCULATED_VAR_VAL= '''\
+                  <var name="{vnam}">{val:.{decimals}f}</var>
+'''
+
+ITEMPROC_EXTENSION_CALCULATED_ANSWER= '''\
+                  <answer>{val:.{decimals}f}</answer>
+'''
+
+ITEMPROC_EXTENSION_CALCULATED_VAR_SET_END = '''\
+                </var_set>
+'''
+
+ITEMPROC_EXTENSION_CALCULATED_END = '''\
+              </var_sets>
+            </calculated>
+          </itemproc_extension>
+'''
 
 def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str:
     '''
@@ -646,6 +687,28 @@ def assessment(*, quiz: Quiz, assessment_identifier: str, title_xml: str) -> str
                 if choice.feedback_raw is not None:
                     xml.append(ITEM_FEEDBACK_MCTF_SHORTANS_MULTANS_NUM_INDIVIDUAL.format(ident=f'text2qti_choice_{choice.id}',
                                                                                          feedback=choice.feedback_html_xml))
+
+        if question.type == 'calculated_question':
+            # insert the itemproc_extension for a calculated question
+            xml.append(ITEMPROC_EXTENSION_CALCULATED_START.format(answer_tolerance=question.calculated_tolerance,
+                            decimal_places=question.calculated_formula.decimal_places,
+                            formula=question.calculated_formula.formula))
+            vss = question.calculated_varsets
+            for var in vss.vars:
+                xml.append(ITEMPROC_EXTENSION_CALCULATED_VAR.format(name=var.name,
+                            scale=var.decimal_places, minimum=var.minimum, maximum=var.maximum))
+            xml.append(ITEMPROC_EXTENSION_CALCULATED_MIDDLE)
+            for i in range(len(vss.ids)):
+                xml.append(ITEMPROC_EXTENSION_CALCULATED_VAR_SET_START.format(ident=vss.ids[i]))
+                vals = vss.valsets[i]
+                for j in range(len(vals)):
+                    xml.append(ITEMPROC_EXTENSION_CALCULATED_VAR_VAL.format(vnam=vss.vars[j].name,
+                            val=vals[j], decimals=vss.vars[j].decimal_places))
+                xml.append(ITEMPROC_EXTENSION_CALCULATED_ANSWER.format(val=vss.answers[i],
+                            decimals=question.calculated_formula.decimal_places))
+                xml.append(ITEMPROC_EXTENSION_CALCULATED_VAR_SET_END)
+            xml.append(ITEMPROC_EXTENSION_CALCULATED_END)
+            
 
         xml.append(END_ITEM)
 

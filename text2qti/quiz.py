@@ -193,6 +193,7 @@ class CalculatedVar(object):
             raise Text2qtiError(f'Maximum is less than minimum for CalculatedVar {name}.')
         self.name = name
         self.minimum = minimum
+        self.maximum = maximum
         self.delta = delta
         self.nposs = int(round((maximum-minimum)/delta)) + 1
         self.decimal_places = decimal_places
@@ -200,7 +201,53 @@ class CalculatedVar(object):
     def valueat(self, i: int):
         return self.minimum + i * self.delta
         
+
+class Formula(object):
+    '''
+    Represents a Canvas formula with string representation of the
+    formula in Canvas calculated question and number of digits
+    to the right of the decimal, consistent with Canvas calculated
+    questions.
+    '''
+    
+    FORMULA_EVAL_GLOBALS = { 
+        # abs is built in
+        'acos' : math.acos, 'asin' : math.asin,
+        'atan' : math.atan, 'ceil' : math.ceil, 'cos' : math.cos,
+        'cosec' : lambda x : 1/math.sin(x),
+        'cotan' : lambda x : 1/math.tan(x),
+        'deg_to_rad' : lambda x : x*math.pi/180,
+        'e' : math.e, 'fact' : math.factorial, 'floor' : math.floor,
+        'IF' : lambda a, b, c: (a and b) or c,
+        'log' : math.log, 
+        # min and max are built in
+        'pi' : math.pi, 'rand' : random.random,
+        'RANGE' : lambda a: [min(a), max(a)],
+        # round is built in
+        'sec' : lambda x : 1/math.cos(x),
+        'sin' : math.sin, 'sqrt' : math.sqrt,
+        # sum is built in
+        'tan' : math.tan
+        }
+    
+    def __init__(self, formula: str, decimal_places: int):
+        self.formula = formula
+        self.decimal_places = decimal_places
+        self.delta = 10**(-decimal_places)
+        pf = formula
+        pf = pf.replace("&lt;","<").replace("&gt;",">")
+        pf = pf.replace("^", "**")
+        pf = pf.replace("pi()", "pi").replace("e()", "e")
+        pf = pf.replace("ln", "log").replace("if", "IF")
+        pf = pf.replace("range", "RANGE")
+        self.pyexpr = compile(pf, '', 'eval')
         
+    def eval(self, vdict: Dict[str, float]):
+        v = eval(self.pyexpr, self.FORMULA_EVAL_GLOBALS, vdict)
+        v = self.delta * round(v/self.delta)
+        return v
+
+
 class CalculatedVarSets(object):
     '''
     Encapsulates a list of variable names and 
@@ -213,7 +260,7 @@ class CalculatedVarSets(object):
         self.answers: List[float] = []
         self.ids: List[str] = []
         
-    def generate(self, ngen):
+    def generate(self, ngen: int, f: Formula):
         '''
         Generates a quantity ngen of unique value sets for the variables.
         Sets are uniformly chosen from among the total set of
@@ -222,6 +269,7 @@ class CalculatedVarSets(object):
         product of the number of possibilities for each variable.
         '''
         var_nposs_list = list(v.nposs for v in self.vars)
+        nvar = len(var_nposs_list)
         nposs = functools.reduce(operator.mul, var_nposs_list, 1)  # calculates product
         if ngen > nposs:
             raise Text2qtiError(f'Requested {ngen} values for calculated question but variable precision only allows {nposs}.')
@@ -229,25 +277,12 @@ class CalculatedVarSets(object):
         self.ids = list(str(genid) for genid in genids)
         for genid in genids:
             coords = unravel(genid, var_nposs_list)
-            vs = list( self.vars[i].valueat(coords[i]) for i in range(len(coords)))
+            vs = list( self.vars[i].valueat(coords[i]) for i in range(nvar) )
             self.valsets.append(vs)
-            # calculate answer here!
-            # answer = ...
-            # self.answers.append(answer)
-        print("FIXME: Calculate answers in CalculatedVarSets.generate()!")
-            
-        
-
-class Formula(object):
-    '''
-    Represents a Canvas formula with string representation of the
-    formula in Canvas calculated question and number of digits
-    to the right of the decimal, consistent with Canvas calculated
-    questions.
-    '''
-    def __init__(self, formula: str, decimal_places: int):
-        self.formula = formula
-        self.decimal_places = decimal_places
+            localdict = dict((self.vars[i].name, vs[i]) for i in range(nvar))
+            answer = f.eval( localdict )
+            self.answers.append(answer)
+            # print("Debug: %s at %s is %g" % (f.formula, localdict, answer))
 
     
 class Question(object):
@@ -585,7 +620,7 @@ class Question(object):
             if self.correct_choices < 1:
                 raise Text2qtiError('Question must specify a correct choice')
         elif self.type == 'calculated_question':
-            self.calculated_varsets.generate(self.calculated_generations)
+            self.calculated_varsets.generate(self.calculated_generations, self.calculated_formula)
         
 
 class Group(object):
