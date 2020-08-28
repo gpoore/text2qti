@@ -676,8 +676,8 @@ class Group(object):
         self.questions.append(question)
 
     def finalize(self):
-        if len(self.questions) <= self.pick:
-            raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.pick+1}')
+        if len(self.questions) < self.pick:
+            raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.pick}')
         h = hashlib.blake2b()
         for digest in sorted(q.hash_digest for q in self.questions):
             h.update(digest)
