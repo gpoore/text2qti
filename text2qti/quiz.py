@@ -830,10 +830,6 @@ class Quiz(object):
             raise Text2qtiError('Expected option value cannot be less than 0')
         self.allowed_attempts_raw = text
         self.allowed_attempts_xml = text
-        #if text not in ('true', 'True', 'false', 'False'):
-        #    raise Text2qtiError('Expected option value "true" or "false"')
-        #self.shuffle_answers_raw = text
-        #self.shuffle_answers_xml = text.lower()
 
     def append_text_title(self, text: str):
         if self._next_question_attr:
