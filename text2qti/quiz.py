@@ -20,7 +20,7 @@ import itertools
 import locale
 import pathlib
 import re
-import shlex
+import shutil
 import subprocess
 import tempfile
 from typing import Dict, List, Optional, Set, Union
@@ -89,7 +89,12 @@ start_missing_content_re = re.compile('|'.join(r'(?P<{0}>{1}[ \t]*$)'.format(nam
 start_missing_whitespace_re = re.compile('|'.join(r'(?P<{0}>{1}(?=\S))'.format(name, pattern)
                                                   for name, pattern in start_patterns.items()
                                                   if name not in no_content))
-start_code_supported_info_re = re.compile(r'\{\s*\.[a-zA-Z](?:[a-zA-Z0-9]+|(?:_+|-+)[a-zA-Z0-9]+)*\s+\.run\s*\}$')
+start_code_supported_info_re = re.compile(r'\{\s*'
+                                          r'\.(?P<lang>[a-zA-Z](?:[a-zA-Z0-9]+|[\._\-]+[a-zA-Z0-9]+)*)'
+                                          r'\s+'
+                                          r'\.run'
+                                          r'(?:\s+executable=(?P<executable>[~\w/\.\-]+|"[^\\\"\']+"))?'
+                                          r'\s*\}$')
 int_re = re.compile('(?:0|[+-]?[1-9](?:[0-9]+|_[0-9]+)*)$')
 
 
@@ -567,6 +572,18 @@ class Quiz(object):
         self.images: Dict[str, Image] = self.md.images
         self._next_question_attr = {}
 
+        # Determine how to interpret `.python` for executable code blocks.
+        # If `python3` exists, use it instead of `python` if `python` does not
+        # exist or if `python` is equivalent to `python2`.
+        if not shutil.which('python2') or not shutil.which('python3'):
+            python_executable = 'python'
+        elif not shutil.which('python'):
+            python_executable = 'python3'
+        elif pathlib.Path(shutil.which('python')).resolve() == pathlib.Path(shutil.which('python2')).resolve():
+            python_executable = 'python3'
+        else:
+            python_executable = 'python'
+
         parse_actions = {}
         for k in start_patterns:
             parse_actions[k] = getattr(self, f'append_{k}')
@@ -585,10 +602,19 @@ class Quiz(object):
                 text = line[match.end():].strip()
                 if action == 'start_code':
                     info = line.lstrip('`').strip()
-                    if not start_code_supported_info_re.match(info):
+                    info_match = start_code_supported_info_re.match(info)
+                    if info_match is None:
                         pass
                     else:
-                        executable = info.replace('.run', '').strip('{} \t.')
+                        executable = info_match.group('executable')
+                        if executable is not None:
+                            if executable.startswith('"'):
+                                executable = executable[1:-1]
+                            executable = pathlib.Path(executable).expanduser().as_posix()
+                        else:
+                            executable = info_match.group('lang')
+                            if executable == 'python':
+                                executable = python_executable
                         delim = '`'*(len(line) - len(line.lstrip('`')))
                         n_code_start = n
                         code_lines = []
@@ -714,7 +740,7 @@ class Quiz(object):
             tempdir_path = pathlib.Path(tempdir)
             code_path = tempdir_path / f'{h.hexdigest()[:16]}.code'
             code_path.write_text(code, encoding='utf8')
-            cmd = shlex.split(f'{executable} {code_path.as_posix()}')
+            cmd = [executable, code_path.as_posix()]
             try:
                 proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except FileNotFoundError as e:

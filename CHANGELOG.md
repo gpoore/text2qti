@@ -3,12 +3,19 @@
 
 ## v0.5.0 (dev)
 
+* In executable code blocks, `.python` now invokes `python3` on systems where
+  `python` is equivalent to `python2` as well as on systems that lack a
+  `python` executable.  The README now suggests using `.python3` and
+  `.python2` to be more explicit (#22).
+* Added a new keyword argument `executable` for executable code blocks, which
+  allows a custom executable (including path) to be specified for running
+  code.  Added support for periods in code block language attributes, so that
+  things like `.python3.8` are now possible.
 * Fixed bug caused by swapped identifiers in QTI XML (#18, #19).  Now quiz
   descriptions work with Canvas and question titles appear in Canvas in the
   quiz editor (but not in the student view).   The following options now work
   with Canvas:  `Shuffle answers`, `Show correct answers`,
   `One question at a time`, and `Can't go back`.
-
 * README now covers more options for installing the development version (#20).
 
 

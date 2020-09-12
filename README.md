@@ -334,20 +334,52 @@ for x in [2, 3]:
 
 
 For code to be executed, there are a few requirements:
+
 * The code block fences (` ``` `) must not be indented; the code block must be
   at the top level of the document, not part of a question, choice, or
   feedback.
+
 * As a security measure, code execution is disabled by default, so executable
   code blocks will trigger an error.  Run `text2qti` with the option
   `--run-code-blocks` to enable code execution, or set `run_code_blocks =
   true` in the text2qti config file in your user or home directory.
-* The text immediately after the opening fence must have the form `{.lang
-  .run}`.  This is inspired by the code-block attributes in
-  [Pandoc Markdown](https://pandoc.org/MANUAL.html).  `lang` must designate an
-  executable that can run the code once the code has been saved to a file.  In
-  the example above, `python` is extracted from the first line
+
+* The text immediately after the opening fence must have the form
+  `{.lang .run}` or `{.lang .run executable=<executable>}`.  This is inspired
+  by the code-block attributes in
+  [Pandoc Markdown](https://pandoc.org/MANUAL.html).
+
+  If the keyword argument `executable` is not provided, then `lang` must
+  designate an executable that can run the code once the code has been saved
+  to a file.  In the example above, `python` is extracted from the first line
   (` ```{.python .run}`),  code is saved in a temporary file, and then the
   file is executed via `python <file>`.
+
+  If `executable` is used to specify an executable, then `lang` is ignored by
+  `text2qti`, but it is still useful since some editors will use it to provide
+  syntax highlighting.
+
+  When `executable` is specified, the executable path must be quoted with
+  double quotes `"` if it contains anything other than the tilde, Unicode word
+  characters, numbers, forward slashes, periods, hyphens, and underscores.
+  When the executable path is quoted, backslashes and quotation marks are
+  still prohibited; forward slashes should be used under all operating systems
+  including Windows.  A leading `~` in the executable path is expanded to the
+  user's home directory under all operating systems including Windows.
+
+* **Special Python note**:  When `.python` is used with an executable code
+  block without specifying an `executable`, code will run with `python3` if
+  either of these conditions is met:
+
+    - `python3` exists on the system and `python` is equivalent to `python2`.
+
+    - `python` does not exist on the system, but `python3` does exist.
+
+  To avoid ambiguity, you may want to use `.python3` and `.python2` rather
+  than `.python` when working with operating systems other than Windows, or
+  when working with a Windows installation that includes a `python3`
+  executable or symlink.  It is also possible to be even more specific by
+  using something like `.python3.8`.
 
 Each code block is executed in its own process, so data and variables are not
 shared between code blocks.
