@@ -16,6 +16,8 @@
   quiz editor (but not in the student view).   The following options now work
   with Canvas:  `Shuffle answers`, `Show correct answers`,
   `One question at a time`, and `Can't go back`.
+* Fixed bug that produced incorrect QTI output paths when using quiz files
+  outside the current working directory (#28, #29).
 * README now covers more options for installing the development version (#20).
 
 
