@@ -46,7 +46,7 @@ setup(name='text2qti',
       python_requires='>=3.6',
       install_requires=[
           'bespon>=0.4',
-          'markdown',
+          'markdown>=3.2',
       ],
       # https://pypi.python.org/pypi?:action=list_classifiers
       classifiers=[
