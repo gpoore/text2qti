@@ -1,7 +1,7 @@
 # Change Log
 
 
-## v0.5.0 (dev)
+## v0.5.0 (2020-09-28)
 
 * Added `text2qti_tk` executable, which provides a basic graphical user
   interface (GUI) via `tkinter`.  Added build scripts in `make_gui_exe/` for
