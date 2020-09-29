@@ -3,6 +3,9 @@
 
 ## v0.5.0 (dev)
 
+* Added `text2qti_tk` executable, which provides a basic graphical user
+  interface (GUI) via `tkinter`.  Added build scripts in `make_gui_exe/` for
+  creating a standalone GUI executable under Windows with PyInstaller (#27).
 * In executable code blocks, `.python` now invokes `python3` on systems where
   `python` is equivalent to `python2` as well as on systems that lack a
   `python` executable.  The README now suggests using `.python3` and

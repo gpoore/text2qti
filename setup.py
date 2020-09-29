@@ -12,7 +12,7 @@ import sys
 if sys.version_info < (3, 6):
     sys.exit('text2qti requires Python 3.6+')
 import pathlib
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 
@@ -30,9 +30,7 @@ long_description = readme_path.read_text(encoding='utf8')
 setup(name='text2qti',
       version=version,
       py_modules=[],
-      packages=[
-          'text2qti'
-      ],
+      packages=find_packages(),
       package_data = {},
       description='Create quizzes in QTI format from Markdown-based plain text',
       long_description=long_description,
@@ -62,5 +60,6 @@ setup(name='text2qti',
       ],
       entry_points = {
           'console_scripts': ['text2qti = text2qti.cmdline:main'],
+          'gui_scripts': ['text2qti_tk = text2qti.gui.tk:main'],
       },
 )

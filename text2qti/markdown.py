@@ -12,6 +12,7 @@ import atexit
 import hashlib
 import json
 import pathlib
+import platform
 import re
 import subprocess
 import time
@@ -19,8 +20,29 @@ import typing
 from typing import Dict, Set
 import urllib.parse
 import zipfile
+
 import markdown
+# Markdown extensions are imported and initialized explicitly to ensure that
+# pyinstaller identifies them.
+import markdown.extensions
+import markdown.extensions.smarty
+import markdown.extensions.sane_lists
+import markdown.extensions.def_list
+import markdown.extensions.fenced_code
+import markdown.extensions.footnotes
+import markdown.extensions.tables
+import markdown.extensions.md_in_html
+md_extensions = [
+    markdown.extensions.smarty.makeExtension(),
+    markdown.extensions.sane_lists.makeExtension(),
+    markdown.extensions.def_list.makeExtension(),
+    markdown.extensions.fenced_code.makeExtension(),
+    markdown.extensions.footnotes.makeExtension(),
+    markdown.extensions.tables.makeExtension(),
+    markdown.extensions.md_in_html.makeExtension(),
+]
 from markdown.inlinepatterns import ImageInlineProcessor, IMAGE_LINK_RE
+
 from .config import Config
 from .err import Text2qtiError
 from .version import __version__ as version
@@ -108,15 +130,6 @@ class Markdown(object):
     def __init__(self, config: Config):
         self.config = config
 
-        md_extensions = [
-            'smarty',
-            'sane_lists',
-            'def_list',
-            'fenced_code',
-            'footnotes',
-            'tables',
-            'md_in_html',
-        ]
         markdown_processor = markdown.Markdown(extensions=md_extensions)
         markdown_image_processor = Text2qtiImagePattern(IMAGE_LINK_RE, markdown_processor, self)
         markdown_processor.inlinePatterns.register(markdown_image_processor, 'image_link', 150)
@@ -135,6 +148,7 @@ class Markdown(object):
     def finalize(self):
         if self.config['pandoc_mathml']:
             self._save_cache()
+            self._cache_lock_path.unlink()
 
 
     def _prep_cache(self):
@@ -247,10 +261,17 @@ class Markdown(object):
             mathml = data['mathml']
             data['unused_count'] = 0
         else:
+            if platform.system() == 'Windows':
+                # Prevent console from appearing for an instant
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            else:
+                startupinfo = None
             try:
                 proc = subprocess.run(['pandoc', '-f', 'markdown', '-t', 'html', '--mathml'],
                                       input='${0}$'.format(latex), encoding='utf8',
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                      startupinfo=startupinfo,
                                       check=True)
             except FileNotFoundError as e:
                 raise Text2qtiError(f'Could not find Pandoc:\n{e}')

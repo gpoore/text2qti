@@ -214,20 +214,24 @@ editor like Notepad or gedit, or a code editor like
 [VS Code](https://code.visualstudio.com/).  You can even use Microsoft Word,
 as long as you save your file as plain text (*.txt).
 
-text2qti is a command-line application.  Open a command line in the same
-folder or directory as your quiz file.  Under Windows, you can hold the SHIFT
-button down on the keyboard, then right click next to your file, and select
-"Open PowerShell window here" or "Open command window here".  You can also
-launch "Command Prompt" or "PowerShell" through the Start menu, and then
-navigate to your file using `cd`.
+text2qti includes a graphical application and a command-line application.
 
-Run the `text2qti` application using a command like this:
-```
-text2qti quiz.txt
-```
-Replace "quiz.txt" with the name of your file.  This will create a file like
-`quiz.zip` (with "quiz" replaced by the name of your file) which is the
-converted quiz in QTI format.
+* To use the graphical application, open a command line and run `text2qti_tk`.
+
+* To use the command-line application, open a command line in the same folder
+  or directory as your quiz file.  Under Windows, you can hold the SHIFT
+  button down on the keyboard, then right click next to your file, and select
+  "Open PowerShell window here" or "Open command window here".  You can also
+  launch "Command Prompt" or "PowerShell" through the Start menu, and then
+  navigate to your file using `cd`.
+
+  Run the `text2qti` application using a command like this:
+  ```
+  text2qti quiz.txt
+  ```
+  Replace "quiz.txt" with the name of your file.  This will create a file like
+  `quiz.zip` (with "quiz" replaced by the name of your file) which is the
+  converted quiz in QTI format.
 
 Instructions for using the QTI file with Canvas:
   * Go to the course in which you want to use the quiz.

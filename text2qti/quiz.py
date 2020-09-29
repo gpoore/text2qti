@@ -19,6 +19,7 @@ import io
 import itertools
 import locale
 import pathlib
+import platform
 import re
 import shutil
 import subprocess
@@ -584,165 +585,176 @@ class Quiz(object):
         else:
             python_executable = 'python'
 
-        parse_actions = {}
-        for k in start_patterns:
-            parse_actions[k] = getattr(self, f'append_{k}')
-        parse_actions[None] = self.append_unknown
-        start_multiline_comment_pattern = comment_patterns['start_multiline_comment']
-        end_multiline_comment_pattern = comment_patterns['end_multiline_comment']
-        line_comment_pattern = comment_patterns['line_comment']
-        n_line_iter = iter(x for x in enumerate(string.splitlines()))
-        n, line = next(n_line_iter, (0, None))
-        lookahead = False
-        n_code_start = 0
-        while line is not None:
-            match = start_re.match(line)
-            if match:
-                action = match.lastgroup
-                text = line[match.end():].strip()
-                if action == 'start_code':
-                    info = line.lstrip('`').strip()
-                    info_match = start_code_supported_info_re.match(info)
-                    if info_match is None:
-                        pass
-                    else:
-                        executable = info_match.group('executable')
-                        if executable is not None:
-                            if executable.startswith('"'):
-                                executable = executable[1:-1]
-                            executable = pathlib.Path(executable).expanduser().as_posix()
+        try:
+            parse_actions = {}
+            for k in start_patterns:
+                parse_actions[k] = getattr(self, f'append_{k}')
+            parse_actions[None] = self.append_unknown
+            start_multiline_comment_pattern = comment_patterns['start_multiline_comment']
+            end_multiline_comment_pattern = comment_patterns['end_multiline_comment']
+            line_comment_pattern = comment_patterns['line_comment']
+            n_line_iter = iter(x for x in enumerate(string.splitlines()))
+            n, line = next(n_line_iter, (0, None))
+            lookahead = False
+            n_code_start = 0
+            while line is not None:
+                match = start_re.match(line)
+                if match:
+                    action = match.lastgroup
+                    text = line[match.end():].strip()
+                    if action == 'start_code':
+                        info = line.lstrip('`').strip()
+                        info_match = start_code_supported_info_re.match(info)
+                        if info_match is None:
+                            pass
                         else:
-                            executable = info_match.group('lang')
-                            if executable == 'python':
-                                executable = python_executable
-                        delim = '`'*(len(line) - len(line.lstrip('`')))
-                        n_code_start = n
-                        code_lines = []
-                        n, line = next(n_line_iter, (0, None))
-                        # No lookahead here; all lines are consumed
-                        while line is not None and not (line.startswith(delim) and line[len(delim):] == line.lstrip('`')):
-                            code_lines.append(line)
-                            n, line = next(n_line_iter, (0, None))
-                        if line is None:
-                            raise Text2qtiError(f'In {self.source_name} on line {n}:\nCode closing fence is missing')
-                        if line.lstrip('`').strip():
-                            raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nCode closing fence is missing')
-                        code_lines.append('\n')
-                        code = '\n'.join(code_lines)
-                        try:
-                            stdout = self._run_code(executable, code)
-                        except Exception as e:
-                            raise Text2qtiError(f'In {self.source_name} on line {n_code_start+1}:\n{e}')
-                        code_n_line_iter = ((n_code_start, stdout_line) for stdout_line in stdout.splitlines())
-                        n_line_iter = itertools.chain(code_n_line_iter, n_line_iter)
-                        n, line = next(n_line_iter, (0, None))
-                        continue
-                elif action in multi_line:
-                    if start_patterns[action].endswith(':'):
-                        indent_expandtabs = None
-                    else:
-                        indent_expandtabs = ' '*len(line[:match.end()].expandtabs(4))
-                    text_lines = [text]
-                    n, line = next(n_line_iter, (0, None))
-                    line_expandtabs = line.expandtabs(4) if line is not None else None
-                    lookahead = True
-                    while (line is not None and
-                            (not line or line.isspace() or
-                                indent_expandtabs is None or line_expandtabs.startswith(indent_expandtabs))):
-                        if not line or line.isspace():
-                            if action in multi_para:
-                                text_lines.append('')
+                            executable = info_match.group('executable')
+                            if executable is not None:
+                                if executable.startswith('"'):
+                                    executable = executable[1:-1]
+                                executable = pathlib.Path(executable).expanduser().as_posix()
                             else:
-                                break
+                                executable = info_match.group('lang')
+                                if executable == 'python':
+                                    executable = python_executable
+                            delim = '`'*(len(line) - len(line.lstrip('`')))
+                            n_code_start = n
+                            code_lines = []
+                            n, line = next(n_line_iter, (0, None))
+                            # No lookahead here; all lines are consumed
+                            while line is not None and not (line.startswith(delim) and line[len(delim):] == line.lstrip('`')):
+                                code_lines.append(line)
+                                n, line = next(n_line_iter, (0, None))
+                            if line is None:
+                                raise Text2qtiError(f'In {self.source_name} on line {n}:\nCode closing fence is missing')
+                            if line.lstrip('`').strip():
+                                raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nCode closing fence is missing')
+                            code_lines.append('\n')
+                            code = '\n'.join(code_lines)
+                            try:
+                                stdout = self._run_code(executable, code)
+                            except Exception as e:
+                                raise Text2qtiError(f'In {self.source_name} on line {n_code_start+1}:\n{e}')
+                            code_n_line_iter = ((n_code_start, stdout_line) for stdout_line in stdout.splitlines())
+                            n_line_iter = itertools.chain(code_n_line_iter, n_line_iter)
+                            n, line = next(n_line_iter, (0, None))
+                            continue
+                    elif action in multi_line:
+                        if start_patterns[action].endswith(':'):
+                            indent_expandtabs = None
                         else:
-                            if indent_expandtabs is None:
-                                if not line.startswith(' '):
-                                    break
-                                indent_expandtabs = ' '*(len(line_expandtabs)-len(line_expandtabs.lstrip(' ')))
-                                if len(indent_expandtabs) < 2:
-                                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nIndentation must be at least 2 spaces or 1 tab here')
-                            # The `rstrip()` prevents trailing double
-                            # spaces from becoming `<br />`.
-                            text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
+                            indent_expandtabs = ' '*len(line[:match.end()].expandtabs(4))
+                        text_lines = [text]
                         n, line = next(n_line_iter, (0, None))
                         line_expandtabs = line.expandtabs(4) if line is not None else None
-                    text = '\n'.join(text_lines)
-            elif line.startswith(line_comment_pattern):
-                n, line = next(n_line_iter, (0, None))
-                continue
-            elif line.startswith(start_multiline_comment_pattern):
-                if line.strip() != start_multiline_comment_pattern:
-                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nUnexpected content after "{start_multiline_comment_pattern}"')
-                n, line = next(n_line_iter, (0, None))
-                while line is not None and not line.startswith(end_multiline_comment_pattern):
+                        lookahead = True
+                        while (line is not None and
+                                (not line or line.isspace() or
+                                    indent_expandtabs is None or line_expandtabs.startswith(indent_expandtabs))):
+                            if not line or line.isspace():
+                                if action in multi_para:
+                                    text_lines.append('')
+                                else:
+                                    break
+                            else:
+                                if indent_expandtabs is None:
+                                    if not line.startswith(' '):
+                                        break
+                                    indent_expandtabs = ' '*(len(line_expandtabs)-len(line_expandtabs.lstrip(' ')))
+                                    if len(indent_expandtabs) < 2:
+                                        raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nIndentation must be at least 2 spaces or 1 tab here')
+                                # The `rstrip()` prevents trailing double
+                                # spaces from becoming `<br />`.
+                                text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
+                            n, line = next(n_line_iter, (0, None))
+                            line_expandtabs = line.expandtabs(4) if line is not None else None
+                        text = '\n'.join(text_lines)
+                elif line.startswith(line_comment_pattern):
                     n, line = next(n_line_iter, (0, None))
-                if line is None:
-                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nf"{start_multiline_comment_pattern}" without following "{end_multiline_comment_pattern}"')
-                if line.strip() != end_multiline_comment_pattern:
-                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nUnexpected content after "{end_multiline_comment_pattern}"')
-                n, line = next(n_line_iter, (0, None))
-                continue
-            elif line.startswith(end_multiline_comment_pattern):
-                raise Text2qtiError(f'In {self.source_name} on line {n+1}:\n"{end_multiline_comment_pattern}" without preceding "{start_multiline_comment_pattern}"')
-            else:
-                action = None
-                text = line
-            try:
-                parse_actions[action](text)
-            except Text2qtiError as e:
-                if lookahead and n != n_code_start:
-                    raise Text2qtiError(f'In {self.source_name} on line {n}:\n{e}')
-                raise Text2qtiError(f'In {self.source_name} on line {n+1}:\n{e}')
-            if not lookahead:
-                n, line = next(n_line_iter, (0, None))
-            lookahead = False
-        if not self.questions_and_delims:
-            raise Text2qtiError('No questions were found')
-        if self._current_group is not None:
-            raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\nQuestion group never ended')
-        last_question_or_delim = self.questions_and_delims[-1]
-        if isinstance(last_question_or_delim, Question):
-            try:
-                last_question_or_delim.finalize()
-            except Text2qtiError as e:
-                raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\n{e}')
+                    continue
+                elif line.startswith(start_multiline_comment_pattern):
+                    if line.strip() != start_multiline_comment_pattern:
+                        raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nUnexpected content after "{start_multiline_comment_pattern}"')
+                    n, line = next(n_line_iter, (0, None))
+                    while line is not None and not line.startswith(end_multiline_comment_pattern):
+                        n, line = next(n_line_iter, (0, None))
+                    if line is None:
+                        raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nf"{start_multiline_comment_pattern}" without following "{end_multiline_comment_pattern}"')
+                    if line.strip() != end_multiline_comment_pattern:
+                        raise Text2qtiError(f'In {self.source_name} on line {n+1}:\nUnexpected content after "{end_multiline_comment_pattern}"')
+                    n, line = next(n_line_iter, (0, None))
+                    continue
+                elif line.startswith(end_multiline_comment_pattern):
+                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\n"{end_multiline_comment_pattern}" without preceding "{start_multiline_comment_pattern}"')
+                else:
+                    action = None
+                    text = line
+                try:
+                    parse_actions[action](text)
+                except Text2qtiError as e:
+                    if lookahead and n != n_code_start:
+                        raise Text2qtiError(f'In {self.source_name} on line {n}:\n{e}')
+                    raise Text2qtiError(f'In {self.source_name} on line {n+1}:\n{e}')
+                if not lookahead:
+                    n, line = next(n_line_iter, (0, None))
+                lookahead = False
+            if not self.questions_and_delims:
+                raise Text2qtiError('No questions were found')
+            if self._current_group is not None:
+                raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\nQuestion group never ended')
+            last_question_or_delim = self.questions_and_delims[-1]
+            if isinstance(last_question_or_delim, Question):
+                try:
+                    last_question_or_delim.finalize()
+                except Text2qtiError as e:
+                    raise Text2qtiError(f'In {self.source_name} on line {len(string.splitlines())}:\n{e}')
 
-        points_possible = 0
-        digests = []
-        for x in self.questions_and_delims:
-            if isinstance(x, Question):
-                points_possible += x.points_possible
-                digests.append(x.hash_digest)
-            elif isinstance(x, GroupStart):
-                points_possible += x.group.points_per_question*len(x.group.questions)
-                digests.append(x.group.hash_digest)
-            elif isinstance(x, GroupEnd):
-                pass
-            elif isinstance(x, TextRegion):
-                pass
-            else:
-                raise TypeError
-        self.points_possible = points_possible
-        h = hashlib.blake2b()
-        for digest in sorted(digests):
-            h.update(digest)
-        self.hash_digest = h.digest()
-        self.id = h.hexdigest()[:64]
-
-        self.md.finalize()
+            points_possible = 0
+            digests = []
+            for x in self.questions_and_delims:
+                if isinstance(x, Question):
+                    points_possible += x.points_possible
+                    digests.append(x.hash_digest)
+                elif isinstance(x, GroupStart):
+                    points_possible += x.group.points_per_question*len(x.group.questions)
+                    digests.append(x.group.hash_digest)
+                elif isinstance(x, GroupEnd):
+                    pass
+                elif isinstance(x, TextRegion):
+                    pass
+                else:
+                    raise TypeError
+            self.points_possible = points_possible
+            h = hashlib.blake2b()
+            for digest in sorted(digests):
+                h.update(digest)
+            self.hash_digest = h.digest()
+            self.id = h.hexdigest()[:64]
+        finally:
+            self.md.finalize()
 
     def _run_code(self, executable: str, code: str) -> str:
         if not self.config['run_code_blocks']:
             raise Text2qtiError('Code execution for code blocks is not enabled; use --run-code-blocks, or set run_code_blocks = true in config')
         h = hashlib.blake2b()
         h.update(code.encode('utf8'))
+        if platform.system() == 'Windows':
+            # Prevent console from appearing for an instant
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        else:
+            startupinfo = None
         with tempfile.TemporaryDirectory() as tempdir:
             tempdir_path = pathlib.Path(tempdir)
             code_path = tempdir_path / f'{h.hexdigest()[:16]}.code'
             code_path.write_text(code, encoding='utf8')
             cmd = [executable, code_path.as_posix()]
             try:
-                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # stdin is needed for GUI because standard file handles can't
+                # be inherited
+                proc = subprocess.run(cmd,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
+                                      startupinfo=startupinfo)
             except FileNotFoundError as e:
                 raise Text2qtiError(f'Failed to execute code (missing executable "{executable}"?):\n{e}')
             except Exception as e:
