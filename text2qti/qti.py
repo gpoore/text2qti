@@ -44,7 +44,8 @@ class QTI(object):
                                                shuffle_answers=quiz.shuffle_answers_xml,
                                                show_correct_answers=quiz.show_correct_answers_xml,
                                                one_question_at_a_time=quiz.one_question_at_a_time_xml,
-                                               cant_go_back=quiz.cant_go_back_xml)
+                                               cant_go_back=quiz.cant_go_back_xml,
+					       allowed_attempts=quiz.allowed_attempts_xml)
         self.assessment = assessment(quiz=quiz,
                                      assessment_identifier=self.assessment_identifier,
                                      title_xml=quiz.title_xml)

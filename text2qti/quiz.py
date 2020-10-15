@@ -62,6 +62,7 @@ start_patterns = {
     'quiz_show_correct_answers': r'[Ss]how correct answers:',
     'quiz_one_question_at_a_time': r'[Oo]ne question at a time:',
     'quiz_cant_go_back': r'''[Cc]an't go back:''',
+    'quiz_allowed_attempts': r'[Nn]umber of attempts:',
 }
 # comments are currently handled separately from content
 comment_patterns = {
@@ -75,7 +76,8 @@ no_content = set(['essay', 'upload', 'start_group', 'end_group', 'start_code', '
 single_line = set(['question_points', 'group_pick', 'group_points_per_question',
                    'numerical', 'shortans_correct_choice',
                    'quiz_shuffle_answers', 'quiz_show_correct_answers',
-                   'quiz_one_question_at_a_time', 'quiz_cant_go_back'])
+                   'quiz_one_question_at_a_time', 'quiz_cant_go_back',
+                   'quiz_allowed_attempts'])
 multi_line = set([x for x in start_patterns
                   if x not in no_content and x not in single_line])
 # whether parser needs to check for multi-paragraph content
@@ -563,6 +565,8 @@ class Quiz(object):
         self.one_question_at_a_time_xml = 'false'
         self.cant_go_back_raw = None
         self.cant_go_back_xml = 'false'
+        self.allowed_attempts_raw = None
+        self.allowed_attempts_xml = 1
         self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd, TextRegion]] = []
         self._current_group: Optional[Group] = None
         # The set for detecting duplicate questions uses the XML version of
@@ -775,7 +779,8 @@ class Quiz(object):
 
     def append_quiz_title(self, text: str):
         if any(x is not None for x in (self.shuffle_answers_raw, self.show_correct_answers_raw,
-                                       self.one_question_at_a_time_raw, self.cant_go_back_raw)):
+                                       self.one_question_at_a_time_raw, self.cant_go_back_raw,
+				       self.allowed_attempts_raw)):
             raise Text2qtiError('Must give quiz title before quiz options')
         if self._next_question_attr:
             raise Text2qtiError('Expected question; question title and/or points were set but not used')
@@ -790,7 +795,8 @@ class Quiz(object):
 
     def append_quiz_description(self, text: str):
         if any(x is not None for x in (self.shuffle_answers_raw, self.show_correct_answers_raw,
-                                       self.one_question_at_a_time_raw, self.cant_go_back_raw)):
+                                       self.one_question_at_a_time_raw, self.cant_go_back_raw,
+                                       self.allowed_attempts_raw)):
             raise Text2qtiError('Must give quiz description before quiz options')
         if self._next_question_attr:
             raise Text2qtiError('Expected question; question title and/or points were set but not used')
@@ -850,6 +856,18 @@ class Quiz(object):
             raise Text2qtiError('''Must set "One question at a time" to "true" before setting "Can't go back"''')
         self.cant_go_back_raw = text
         self.cant_go_back_xml = text.lower()
+
+    def append_quiz_allowed_attempts(self, text: int):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.allowed_attempts_raw is not None:
+            raise Text2qtiError('Quiz option "Number of attempts" has already been set')
+        if int(text) < 0:
+            raise Text2qtiError('Expected option value cannot be less than 0')
+        self.allowed_attempts_raw = text
+        self.allowed_attempts_xml = text
 
     def append_text_title(self, text: str):
         if self._next_question_attr:

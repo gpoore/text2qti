@@ -407,7 +407,8 @@ description.
 * `One question at a time` — Only show one question at a time.
 * `Can't go back` — Don't allow going back to the previous question when in
   `One question at a time` mode.
-
+* `Number of attempts` — Set number of quiz attempts allowed. Setting this
+  overrides the default of 1 attempt. Set to 0 for unlimited attempts.
 
 
 
