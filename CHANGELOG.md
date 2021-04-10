@@ -1,6 +1,21 @@
 # Change Log
 
 
+## v0.6.0 (dev)
+
+* Added command-line options `--solutions` and `--only-solutions` to
+  command-line application.  These generate solutions in Pandoc Markdown or
+  PDF formats.  Pandoc Markdown solutions are currently only suitable for
+  use with LaTeX.
+* Added quiz-level options `feedback is solution`, `solutions sample groups`,
+  and `solutions randomize groups` for customizing solutions.  Added
+  group-level option `solutions pick` for customizing solutions.  Added
+  question-level syntax involving `!` for providing solutions.
+* In quiz parsing, simplified question type handling and error checking.
+* Fixed bug in calculation of total points possible per quiz.
+
+
+
 ## v0.5.0 (2020-09-28)
 
 * Added `text2qti_tk` executable, which provides a basic graphical user
@@ -24,6 +39,7 @@
 * Fixed bug that produced incorrect QTI output paths when using quiz files
   outside the current working directory (#28, #29).
 * README now covers more options for installing the development version (#20).
+
 
 
 ## v0.4.0 (2020-07-17)

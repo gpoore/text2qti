@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2020, Geoffrey M. Poore
+# Copyright (c) 2020-2021, Geoffrey M. Poore
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License:
@@ -43,6 +43,7 @@ start_patterns = {
     'feedback': r'\.\.\.',
     'correct_feedback': r'\+',
     'incorrect_feedback': r'\-',
+    'solution': r'!',
     'essay': r'___+',
     'upload': r'\^\^\^+',
     'numerical': r'=',
@@ -51,10 +52,11 @@ start_patterns = {
     'text_title': r'[Tt]ext [Tt]itle:',
     'text': r'[Tt]ext:',
     'quiz_title': r'[Qq]uiz [Tt]itle:',
-    'quiz_description': r'[Qq]uiz [Dd]escription:',
+    'quiz_description': r'[Qq]uiz description:',
     'start_group': r'GROUP',
     'end_group': r'END_GROUP',
     'group_pick': r'[Pp]ick:',
+    'group_solutions_pick': r'[Ss]olutions pick:',
     'group_points_per_question': r'[Pp]oints per question:',
     'start_code': r'```+\s*\S.*',
     'end_code': r'```+',
@@ -62,6 +64,9 @@ start_patterns = {
     'quiz_show_correct_answers': r'[Ss]how correct answers:',
     'quiz_one_question_at_a_time': r'[Oo]ne question at a time:',
     'quiz_cant_go_back': r'''[Cc]an't go back:''',
+    'quiz_feedback_is_solution': r'[Ff]eedback is solution:',
+    'quiz_solutions_sample_groups': r'[Ss]olutions sample groups:',
+    'quiz_solutions_randomize_groups': r'[Ss]olutions randomize groups:',
 }
 # comments are currently handled separately from content
 comment_patterns = {
@@ -72,10 +77,11 @@ comment_patterns = {
 # whether regex needs to check after pattern for content on the same line
 no_content = set(['essay', 'upload', 'start_group', 'end_group', 'start_code', 'end_code'])
 # whether parser needs to check for multi-line content
-single_line = set(['question_points', 'group_pick', 'group_points_per_question',
+single_line = set(['question_points', 'group_pick', 'group_solutions_pick', 'group_points_per_question',
                    'numerical', 'shortans_correct_choice',
                    'quiz_shuffle_answers', 'quiz_show_correct_answers',
-                   'quiz_one_question_at_a_time', 'quiz_cant_go_back'])
+                   'quiz_one_question_at_a_time', 'quiz_cant_go_back',
+                   'quiz_feedback_is_solution', 'quiz_solutions_sample_groups', 'quiz_solutions_randomize_groups'])
 multi_line = set([x for x in start_patterns
                   if x not in no_content and x not in single_line])
 # whether parser needs to check for multi-paragraph content
@@ -149,7 +155,7 @@ class Choice(object):
     The presence of feedback does not affect the id.
     '''
     def __init__(self, text: str, *,
-                 correct: bool, shortans=False,
+                 correct: bool, shortans: bool=False,
                  question_hash_digest: bytes, md: Markdown):
         self.choice_raw = text
         if shortans:
@@ -169,6 +175,8 @@ class Choice(object):
         self.md = md
 
     def append_feedback(self, text: str):
+        if self.shortans:
+            raise Text2qtiError('Feedback cannot be specified for individual short answer responses, only for the question')
         if self.feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.feedback_raw = text
@@ -180,12 +188,13 @@ class Question(object):
     A question, along with a list of possible choices and optional feedback of
     various types.
     '''
-    def __init__(self, text: str, *, title: Optional[str], points: Optional[str], md: Markdown):
+    def __init__(self, text: str, *, quiz: 'Quiz', title: Optional[str], points: Optional[str], md: Markdown):
         # Question type is set once it is known.  For true/false or multiple
         # choice, this is done during .finalize(), once all choices are
         # available.  For essay, this is done as soon as essay response is
         # specified.
         self.type: Optional[str] = None
+        self.quiz: 'Quiz' = quiz
         if title is None:
             self.title_raw: Optional[str] = None
             self.title_xml = 'Question'
@@ -199,6 +208,7 @@ class Question(object):
         # choices, to avoid the issue of multiple Markdown representations of
         # the same XML.
         self._choice_set: Set[str] = set()
+        self.numerical_raw: Optional[str] = None
         self.numerical_min: Optional[Union[int, float]] = None
         self.numerical_min_html_xml: Optional[str] = None
         self.numerical_exact: Optional[Union[int, float]] = None
@@ -228,6 +238,7 @@ class Question(object):
         self.correct_feedback_html_xml: Optional[str] = None
         self.incorrect_feedback_raw: Optional[str] = None
         self.incorrect_feedback_html_xml: Optional[str] = None
+        self.solution: Optional[str] = None
         h = hashlib.blake2b(self.question_html_xml.encode('utf8'))
         self.hash_digest = h.digest()
         self.id = h.hexdigest()[:64]
@@ -235,20 +246,20 @@ class Question(object):
 
 
     def append_feedback(self, text: str):
-        if self.type in ('essay_question', 'file_upload_question', 'numerical_question'):
+        if self.type is not None and not self.choices:
             raise Text2qtiError('Question feedback must immediately follow the question')
         if not self.choices:
             if self.feedback_raw is not None:
                 raise Text2qtiError('Feedback can only be specified once')
             self.feedback_raw = text
             self.feedback_html_xml = self.md.md_to_html_xml(text)
+            if self.quiz.feedback_is_solution:
+                self.solution = text
         else:
             self.choices[-1].append_feedback(text)
 
     def append_correct_feedback(self, text: str):
-        if self.type in ('essay_question', 'file_upload_question'):
-            raise Text2qtiError(f'Question type "{self.type}" does not support correct feedback')
-        if self.choices or self.type == 'numerical_question':
+        if self.type is not None:
             raise Text2qtiError('Correct feedback can only be specified for questions')
         if self.correct_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
@@ -256,17 +267,26 @@ class Question(object):
         self.correct_feedback_html_xml = self.md.md_to_html_xml(text)
 
     def append_incorrect_feedback(self, text: str):
-        if self.type in ('essay_question', 'file_upload_question'):
-            raise Text2qtiError(f'Question type "{self.type}" does not support incorrect feedback')
-        if self.choices or self.type == 'numerical_question':
+        if self.type is not None:
             raise Text2qtiError('Incorrect feedback can only be specified for questions')
         if self.incorrect_feedback_raw is not None:
             raise Text2qtiError('Feedback can only be specified once')
         self.incorrect_feedback_raw = text
         self.incorrect_feedback_html_xml = self.md.md_to_html_xml(text)
 
-    def append_mctf_correct_choice(self, text: str):
+    def append_solution(self, text: str):
         if self.type is not None:
+            raise Text2qtiError('Solutions can only be specified for questions')
+        if self.solution is not None:
+            raise Text2qtiError('Solutions can only be specified once')
+        if self.quiz.feedback_is_solution:
+            raise Text2qtiError('Solutions syntax with "!" is disabled for quizzes with setting "feedback is solution: true"')
+        self.solution = text
+
+    def append_mctf_correct_choice(self, text: str):
+        if self.type is None:
+            self.type = 'multiple_choice_question'
+        elif self.type != 'multiple_choice_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support multiple choice')
         choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
         if choice.choice_html_xml in self._choice_set:
@@ -276,7 +296,9 @@ class Question(object):
         self.correct_choices += 1
 
     def append_mctf_incorrect_choice(self, text: str):
-        if self.type is not None:
+        if self.type is None:
+            self.type = 'multiple_choice_question'
+        elif self.type != 'multiple_choice_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support multiple choice')
         choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
         if choice.choice_html_xml in self._choice_set:
@@ -287,8 +309,6 @@ class Question(object):
     def append_shortans_correct_choice(self, text: str):
         if self.type is None:
             self.type = 'short_answer_question'
-            if self.choices:
-                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         elif self.type != 'short_answer_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support short answer')
         choice = Choice(text, correct=True, shortans=True, question_hash_digest=self.hash_digest, md=self.md)
@@ -301,8 +321,6 @@ class Question(object):
     def append_multans_correct_choice(self, text: str):
         if self.type is None:
             self.type = 'multiple_answers_question'
-            if self.choices:
-                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         elif self.type != 'multiple_answers_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support multiple answers')
         choice = Choice(text, correct=True, question_hash_digest=self.hash_digest, md=self.md)
@@ -315,8 +333,6 @@ class Question(object):
     def append_multans_incorrect_choice(self, text: str):
         if self.type is None:
             self.type = 'multiple_answers_question'
-            if self.choices:
-                raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         elif self.type != 'multiple_answers_question':
             raise Text2qtiError(f'Question type "{self.type}" does not support multiple answers')
         choice = Choice(text, correct=False, question_hash_digest=self.hash_digest, md=self.md)
@@ -327,33 +343,27 @@ class Question(object):
 
     def append_essay(self, text: str):
         if text:
-            # The essay response indicator consumes its entire line, leaving
-            # the empty string; `text` just gives all append functions
-            # the same form.
+            # The essay response syntax provides no text to process; the
+            # `text` argument just gives all append functions the same form.
             raise ValueError
         if self.type is not None:
             if self.type == 'essay_question':
                 raise Text2qtiError(f'Cannot specify essay response multiple times')
             raise Text2qtiError(f'Question type "{self.type}" does not support essay response')
         self.type = 'essay_question'
-        if self.choices:
-            raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         if any(x is not None for x in (self.correct_feedback_raw, self.incorrect_feedback_raw)):
             raise Text2qtiError(f'Question type "{self.type}" does not support correct/incorrect feedback')
 
     def append_upload(self, text: str):
         if text:
-            # The upload response indicator consumes its entire line, leaving
-            # the empty string; `text` just gives all append functions
-            # the same form.
+            # The upload response syntax provides no text to process; the
+            # `text` argument just gives all append functions the same form.
             raise ValueError
         if self.type is not None:
             if self.type == 'file_upload_question':
                 raise Text2qtiError(f'Cannot specify upload response multiple times')
             raise Text2qtiError(f'Question type "{self.type}" does not support upload response')
         self.type = 'file_upload_question'
-        if self.choices:
-            raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
         if any(x is not None for x in (self.correct_feedback_raw, self.incorrect_feedback_raw)):
             raise Text2qtiError(f'Question type "{self.type}" does not support correct/incorrect feedback')
 
@@ -363,8 +373,7 @@ class Question(object):
                 raise Text2qtiError(f'Cannot specify numerical response multiple times')
             raise Text2qtiError(f'Question type "{self.type}" does not support numerical response')
         self.type = 'numerical_question'
-        if self.choices:
-            raise Text2qtiError(f'Question type "{self.type}" is not compatible with existing choices')
+        self.numerical_raw = text
         if text.startswith('['):
             if not text.endswith(']') or ',' not in text:
                 raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
@@ -432,10 +441,10 @@ class Question(object):
 
     def finalize(self):
         if self.type is None:
+            raise Text2qtiError('Question must specify a response type')
+        elif self.type == 'multiple_choice_question':
             if len(self.choices) == 2 and all(c.choice_raw in ('true', 'True', 'false', 'False') for c in self.choices):
                 self.type = 'true_false_question'
-            else:
-                self.type = 'multiple_choice_question'
             if not self.choices:
                 raise Text2qtiError('Question must provide choices')
             if len(self.choices) < 2:
@@ -448,8 +457,6 @@ class Question(object):
             if not self.choices:
                 raise Text2qtiError('Question must provide at least one answer')
         elif self.type == 'multiple_answers_question':
-            # There must be at least one choice for the type to be set, so
-            # don't need to check for zero choices
             if len(self.choices) < 2:
                 raise Text2qtiError('Question must provide more than one choice')
             if self.correct_choices < 1:
@@ -466,6 +473,7 @@ class Group(object):
     def __init__(self):
         self.pick = 1
         self._pick_is_set = False
+        self.solutions_pick: Optional[int] = None
         self.points_per_question = 1
         self._points_per_question_is_set = False
         self.questions: List[Question] = []
@@ -481,10 +489,26 @@ class Group(object):
         try:
             self.pick = int(text)
         except Exception as e:
-            raise Text2qtiError(f'"Pick" value is invalid (must be positive number):\n{e}')
+            raise Text2qtiError(f'"pick" value is invalid (must be positive number):\n{e}')
         if self.pick <= 0:
-            raise Text2qtiError(f'"Pick" value is invalid (must be positive number)')
+            raise Text2qtiError('"pick" value is invalid (must be positive number)')
+        if self.solutions_pick is not None and self.pick > self.solutions_pick:
+            raise Text2qtiError('"pick" value must be less than or equal to "solutions pick" value')
         self._pick_is_set = True
+
+    def append_group_solutions_pick(self, text: str):
+        if self.questions:
+            raise Text2qtiError('Question group options must be set at the very start of the group')
+        if self.solutions_pick is not None:
+            Text2qtiError('"solutions pick" has already been set for this question group')
+        try:
+            self.solutions_pick = int(text)
+        except Exception as e:
+            raise Text2qtiError(f'"solutions pick" value is invalid (must be positive number):\n{e}')
+        if self.solutions_pick <= 0:
+            raise Text2qtiError('"solutions pick" value is invalid (must be positive number)')
+        if self.solutions_pick < self.pick:
+            raise Text2qtiError('"solutions pick" value must be greater than or equal to "pick" value')
 
     def append_group_points_per_question(self, text: str):
         if self.questions:
@@ -509,6 +533,8 @@ class Group(object):
     def finalize(self):
         if len(self.questions) <= self.pick:
             raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.pick+1}')
+        if self.solutions_pick is not None and len(self.questions) < self.solutions_pick:
+            raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.solutions_pick}')
         h = hashlib.blake2b()
         for digest in sorted(q.hash_digest for q in self.questions):
             h.update(digest)
@@ -563,6 +589,9 @@ class Quiz(object):
         self.one_question_at_a_time_xml = 'false'
         self.cant_go_back_raw = None
         self.cant_go_back_xml = 'false'
+        self.feedback_is_solution: Optional[bool] = None
+        self.solutions_sample_groups: Optional[bool] = None
+        self.solutions_randomize_groups: Optional[bool] = None
         self.questions_and_delims: List[Union[Question, GroupStart, GroupEnd, TextRegion]] = []
         self._current_group: Optional[Group] = None
         # The set for detecting duplicate questions uses the XML version of
@@ -716,7 +745,7 @@ class Quiz(object):
                     points_possible += x.points_possible
                     digests.append(x.hash_digest)
                 elif isinstance(x, GroupStart):
-                    points_possible += x.group.points_per_question*len(x.group.questions)
+                    points_possible += x.group.points_per_question*x.group.pick
                     digests.append(x.group.hash_digest)
                 elif isinstance(x, GroupEnd):
                     pass
@@ -851,6 +880,48 @@ class Quiz(object):
         self.cant_go_back_raw = text
         self.cant_go_back_xml = text.lower()
 
+    def append_quiz_feedback_is_solution(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.feedback_is_solution is not None:
+            raise Text2qtiError('Quiz option "feedback is solution" has already been set')
+        if text in ('true', 'True'):
+            self.feedback_is_solution = True
+        elif text in ('false', 'False'):
+            self.feedback_is_solution = False
+        else:
+            raise Text2qtiError('Expected option value "true" or "false"')
+
+    def append_quiz_solutions_sample_groups(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.solutions_sample_groups is not None:
+            raise Text2qtiError('Quiz option "solutions sample groups" has already been set')
+        if text in ('true', 'True'):
+            self.solutions_sample_groups = True
+        elif text in ('false', 'False'):
+            self.solutions_sample_groups = False
+        else:
+            raise Text2qtiError('Expected option value "true" or "false"')
+
+    def append_quiz_solutions_randomize_groups(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self.questions_and_delims:
+            raise Text2qtiError('Must give quiz options before questions')
+        if self.solutions_randomize_groups is not None:
+            raise Text2qtiError('Quiz option "solutions randomize groups" has already been set')
+        if text in ('true', 'True'):
+            self.solutions_randomize_groups = True
+        elif text in ('false', 'False'):
+            self.solutions_randomize_groups = False
+        else:
+            raise Text2qtiError('Expected option value "true" or "false"')
+
     def append_text_title(self, text: str):
         if self._next_question_attr:
             raise Text2qtiError('Expected question; question title and/or points were set but not used')
@@ -886,6 +957,7 @@ class Quiz(object):
             if isinstance(last_question_or_delim, Question):
                 last_question_or_delim.finalize()
         question = Question(text,
+                            quiz=self,
                             title=self._next_question_attr.get('title'),
                             points=self._next_question_attr.get('points'),
                             md=self.md)
@@ -938,6 +1010,19 @@ class Quiz(object):
         if not isinstance(last_question_or_delim, Question):
             raise Text2qtiError('Cannot have feedback without a question')
         last_question_or_delim.append_incorrect_feedback(text)
+
+    def append_solution(self, text: str):
+        if self.feedback_is_solution:
+            raise Text2qtiError('Quiz option "feedback is solution" is "true"; '
+                                '"!" solution syntax is disabled and solutions must be provided as feedback ("...") rather than separately')
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if not self.questions_and_delims:
+            raise Text2qtiError('Cannot have a solution without a question')
+        last_question_or_delim = self.questions_and_delims[-1]
+        if not isinstance(last_question_or_delim, Question):
+            raise Text2qtiError('Cannot have a solution without a question')
+        last_question_or_delim.append_solution(text)
 
     def append_mctf_correct_choice(self, text: str):
         if self._next_question_attr:
@@ -1055,6 +1140,13 @@ class Quiz(object):
         if self._current_group is None:
             raise Text2qtiError('No question group for setting properties')
         self._current_group.append_group_pick(text)
+
+    def append_group_solutions_pick(self, text: str):
+        if self._next_question_attr:
+            raise Text2qtiError('Expected question; question title and/or points were set but not used')
+        if self._current_group is None:
+            raise Text2qtiError('No question group for setting properties')
+        self._current_group.append_group_solutions_pick(text)
 
     def append_group_points_per_question(self, text: str):
         if self._next_question_attr:
