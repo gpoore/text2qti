@@ -12,6 +12,7 @@ import argparse
 import os
 import pathlib
 import platform
+from re import sub
 import shutil
 import subprocess
 import textwrap
@@ -20,7 +21,7 @@ from .err import Text2qtiError
 from .config import Config
 from .quiz import Quiz
 from .qti import QTI
-from .export import quiz_to_pandoc_markdown
+from .export import quiz_to_pandoc
 
 
 
@@ -39,12 +40,16 @@ def main():
     parser.add_argument('--pandoc-mathml', action='store_const', const=True,
                         help='Convert LaTeX math to MathML using Pandoc (this will create a cache file "_text2qti_cache.zip" in the quiz file directory)')
     soln_group = parser.add_mutually_exclusive_group()
-    soln_group.add_argument('--solutions', nargs=1, metavar='SOLUTIONS_FILE',
-                            help='Save solutions in Pandoc Markdown (.md) or PDF (.pdf) format, and create a QTI file '
-                                 '(Pandoc Markdown output is only suitable for use with LaTeX; PDF output requires Pandoc plus LaTeX)')
-    soln_group.add_argument('--only-solutions', nargs=1, metavar='SOLUTIONS_FILE',
-                            help='Save solutions in Pandoc Markdown (.md) or PDF (.pdf) format, and do not create a QTI file '
-                                 '(Pandoc Markdown output is only suitable for use with LaTeX; PDF output requires Pandoc plus LaTeX)')
+    soln_group.add_argument('--solutions', action='append', metavar='SOLUTIONS_FILE',
+                            help='Save solutions in Pandoc Markdown (.md), PDF (.pdf), or HTML (.html) format, and also create a QTI file. '
+                                 'Can be used multiple times to export multiple formats. '
+                                 'Pandoc Markdown output is only suitable for use with LaTeX or HTML; PDF output requires Pandoc plus LaTeX.')
+    soln_group.add_argument('--only-solutions', action='append', metavar='SOLUTIONS_FILE',
+                            help='Save solutions in Pandoc Markdown (.md), PDF (.pdf), or HTML (.html) format, but do not create a QTI file. '
+                                 'Can be used multiple times to export multiple formats. '
+                                 'Pandoc Markdown output is only suitable for use with LaTeX or HTML; PDF output requires Pandoc plus LaTeX. '
+                                 'With this option, solutions and QTI may differ if executable code blocks generate problems using random numbers. '
+                                 'Consider creating solutions and QTI together, or setting a seed for the random number generator so it is reproducible.')
     parser.add_argument('file',
                         help='File to convert from text to QTI')
     args = parser.parse_args()
@@ -87,6 +92,7 @@ def main():
         config['pandoc_mathml'] = args.pandoc_mathml
 
     file_path = pathlib.Path(args.file).expanduser()
+    file_path_abs = file_path.absolute()
     try:
         text = file_path.read_text(encoding='utf-8-sig')  # Handle BOM for Windows
     except FileNotFoundError:
@@ -99,37 +105,67 @@ def main():
     cwd = pathlib.Path.cwd()
     if args.solutions:
         qti_path = pathlib.Path(f'{file_path.stem}.zip')
-        solutions_path = pathlib.Path(args.solutions[0]).expanduser().absolute()
+        solutions_paths = [pathlib.Path(x).expanduser().absolute() for x in args.solutions]
     elif args.only_solutions:
         qti_path = None
-        solutions_path = pathlib.Path(args.only_solutions[0]).expanduser().absolute()
+        solutions_paths = [pathlib.Path(x).expanduser().absolute() for x in args.only_solutions]
     else:
         qti_path = pathlib.Path(f'{file_path.stem}.zip')
-        solutions_path = None
+        solutions_paths = None
+    if solutions_paths is not None:
+        if file_path_abs in solutions_paths:
+            raise Text2qtiError(f'Solutions cannot overwrite quiz file "{file_path}"')
+        if not all(x.suffix.lower() in ('.md', '.markdown', '.pdf', '.html') for x in solutions_paths):
+            invalid_extensions = ', '.join(x.suffix for x in solutions_paths if x.suffix not in ('.md', '.markdown', '.pdf', '.html'))
+            raise Text2qtiError(f'Unsupported export format(s) {invalid_extensions} for solutions; use .md, .markdown, .pdf, or .html')
     os.chdir(file_path.parent)
     try:
+        # Quiz and any solutions should only be generated once each so that
+        # any randomization is only invoked once.
         quiz = Quiz(text, config=config, source_name=file_path.as_posix())
-        if solutions_path is not None:
-            if solutions_path.suffix.lower() in ('.md', '.markdown'):
-                solutions_path.write_text(quiz_to_pandoc_markdown(quiz, solutions=True), encoding='utf8')
-            elif solutions_path.suffix.lower() == '.pdf':
-                if not shutil.which('pandoc'):
-                    raise Text2qtiError('Exporting solutions in PDF format requires Pandoc (https://pandoc.org/)')
-                if not shutil.which('pdflatex'):
-                    raise Text2qtiError('Exporting solutions in PDF format requires LaTeX (https://www.tug.org/texlive/ or https://miktex.org/)')
-                if platform.system() == 'Windows':
-                    cmd = [shutil.which('pandoc'), '-f', 'markdown', '-o', str(solutions_path)]
+        if solutions_paths is not None:
+            solutions_text = quiz_to_pandoc(quiz, solutions=True)
+            for solutions_path in solutions_paths:
+                if solutions_path.suffix.lower() == '.pdf':
+                    if not shutil.which('pandoc'):
+                        raise Text2qtiError('Exporting solutions in PDF format requires Pandoc (https://pandoc.org/)')
+                    if not shutil.which('pdflatex'):
+                        raise Text2qtiError('Exporting solutions in PDF format requires LaTeX (https://www.tug.org/texlive/ or https://miktex.org/)')
+                    if platform.system() == 'Windows':
+                        cmd = [shutil.which('pandoc'), '-f', 'markdown', '-o', str(solutions_path)]
+                    else:
+                        cmd = ['pandoc', '-f', 'markdown', '-o', str(solutions_path)]
+                    try:
+                        proc = subprocess.run(
+                            cmd,
+                            input=solutions_text,
+                            capture_output=True,
+                            check=True,
+                            encoding='utf8'
+                        )
+                    except subprocess.CalledProcessError:
+                        raise Text2qtiError(f'Pandoc failed:\n{"-"*78}\n{proc.stderr}\n{"-"*78}')
+                elif solutions_path.suffix.lower() == '.html':
+                    if not shutil.which('pandoc'):
+                        raise Text2qtiError('Exporting solutions in HTML format requires Pandoc (https://pandoc.org/)')
+                    if platform.system() == 'Windows':
+                        cmd = [shutil.which('pandoc'), '-f', 'markdown', '-o', str(solutions_path), '--mathjax', '-s']
+                    else:
+                        cmd = ['pandoc', '-f', 'markdown', '-o', str(solutions_path), '--mathjax', '-s']
+                    try:
+                        proc = subprocess.run(
+                            cmd,
+                            input=solutions_text,
+                            capture_output=True,
+                            check=True,
+                            encoding='utf8'
+                        )
+                    except subprocess.CalledProcessError:
+                        raise Text2qtiError(f'Pandoc failed:\n{"-"*78}\n{proc.stderr}\n{"-"*78}')
+                elif solutions_path.suffix.lower() in ('.md', '.markdown'):
+                    solutions_path.write_text(solutions_text, encoding='utf8')
                 else:
-                    cmd = ['pandoc', '-f', 'markdown', '-o', str(solutions_path)]
-                subprocess.run(
-                    cmd,
-                    input=quiz_to_pandoc_markdown(quiz, solutions=True),
-                    capture_output=True,
-                    check=True,
-                    encoding='utf8'
-                )
-            else:
-                raise Text2qtiError(f'Unsupported export format {solutions_path.suffix} for solutions; use .md, .markdown, or .pdf')
+                    raise ValueError
         if qti_path is not None:
             qti = QTI(quiz)
             qti.save(qti_path)

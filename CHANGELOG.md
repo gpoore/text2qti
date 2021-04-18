@@ -4,9 +4,9 @@
 ## v0.6.0 (dev)
 
 * Added command-line options `--solutions` and `--only-solutions` to
-  command-line application.  These generate solutions in Pandoc Markdown or
-  PDF formats.  Pandoc Markdown solutions are currently only suitable for
-  use with LaTeX.
+  command-line application.  These generate solutions in Pandoc Markdown,
+  PDF, and HTML formats.  Pandoc Markdown solutions are only suitable for
+  use with LaTeX and HTML (#35).
 * Added quiz-level options `feedback is solution`, `solutions sample groups`,
   and `solutions randomize groups` for customizing solutions.  Added
   group-level option `solutions pick` for customizing solutions.  Added

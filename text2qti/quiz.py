@@ -697,6 +697,9 @@ class Quiz(object):
                                 text_lines.append(line_expandtabs[len(indent_expandtabs):].rstrip())
                             n, line = next(n_line_iter, (0, None))
                             line_expandtabs = line.expandtabs(4) if line is not None else None
+                        if text_lines and not text_lines[-1]:
+                            while text_lines and not text_lines[-1]:
+                                text_lines.pop()
                         text = '\n'.join(text_lines)
                 elif line.startswith(line_comment_pattern):
                     n, line = next(n_line_iter, (0, None))

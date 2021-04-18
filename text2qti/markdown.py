@@ -17,7 +17,7 @@ import re
 import subprocess
 import time
 import typing
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 import urllib.parse
 import zipfile
 
@@ -127,7 +127,7 @@ class Markdown(object):
     siunitx macros are extracted via regex and then converted into plain
     LaTeX, since Canvas LaTeX support does not cover siunitx.
     '''
-    def __init__(self, config: Config):
+    def __init__(self, config: Optional[Config]=None):
         self.config = config
 
         markdown_processor = markdown.Markdown(extensions=md_extensions)
@@ -138,7 +138,9 @@ class Markdown(object):
         self.images: Dict[str, Image] = {}
         self.image_name_set: Set[str] = set()
 
-        if config['pandoc_mathml']:
+        if config is None:
+            self.latex_to_qti = self._latex_to_qti_unconfigured
+        elif config['pandoc_mathml']:
             self.latex_to_qti = self.latex_to_pandoc_mathml
             self._prep_cache()
         else:
@@ -146,9 +148,13 @@ class Markdown(object):
 
 
     def finalize(self):
-        if self.config['pandoc_mathml']:
+        if self.config is not None and self.config['pandoc_mathml']:
             self._save_cache()
             self._cache_lock_path.unlink()
+
+
+    def _latex_to_qti_unconfigured(self, latex: str):
+        raise Text2qtiError('Cannot convert LaTeX to QTI unless Markdown configuration is provided')
 
 
     def _prep_cache(self):
@@ -510,3 +516,38 @@ class Markdown(object):
                 html = html[:-4]
         xml = self.xml_escape(html, squotes=False, dquotes=False)
         return xml
+
+    def _md_to_pandoc_dispatch(self, match: typing.Match[str],
+                                     _passthrough=set(['escape', 'skip', 'block_code', 'inline_code'])) -> str:
+        '''
+        Process LaTeX math and siunitx regex matches into Pandoc Markdown,
+        while stripping HTML comments and leaving things like backslash
+        escapes and code unchanged.
+        '''
+        lastgroup = match.lastgroup
+        if lastgroup == 'html_comment':
+            return ''
+        if lastgroup in _passthrough:
+            return match.group(lastgroup)
+        if lastgroup == 'math':
+            math = match.group('math')
+            math = math.replace('\n ', ' ').replace('\n', ' ')
+            math = self.sub_siunitx_to_plain_latex(math, in_math=True)
+            return '${0}$'.format(math)
+        if lastgroup == 'SI_unit':
+            return '${0}$'.format(self.siunitx_SI_to_plain_latex(match.group('SI_number'), match.group('SI_unit'), in_math=True))
+        if lastgroup == 'num_number':
+            return '${0}$'.format(self.siunitx_num_to_plain_latex(match.group('num_number'), in_math=True))
+        if lastgroup == 'si_unit':
+            return '${0}$'.format(self.siunitx_si_to_plain_latex(match.group('si_unit'), in_math=True))
+        raise ValueError
+
+    def md_to_pandoc(self, string: str) -> str:
+        '''
+        Convert Markdown from a quiz into a form suitable for Pandoc Markdown.
+
+        Convert all siunitx macros in a string into plain LaTeX guaranteed to
+        be wrapped in `$`.  This can be processed into multiple formats by
+        Pandoc.
+        '''
+        return self.skip_or_html_comment_or_code_math_siunitx_re.sub(self._md_to_pandoc_dispatch, string)

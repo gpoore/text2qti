@@ -575,22 +575,28 @@ extension in the future.
 
 
 
-## Export solutions to PDF
+## Export solutions to PDF and HTML
 
-There is basic support for exporting quiz solutions in Pandoc Markdown and PDF
-formats.  This is currently only available in the command-line application.
-Solutions exported as Pandoc Markdown are currently only suitable
-for use with LaTeX.  Exporting solutions as PDF requires
-[Pandoc](https://pandoc.org/) and a LaTeX installation (such as
-[TeX Live](https://www.tug.org/texlive/) or [MiKTeX](https://miktex.org/)).
-There is currently no built-in support for customizing export, although you
-can edit the Pandoc Markdown output before processing it via LaTeX.
+There is basic support for exporting quiz solutions in Pandoc Markdown, PDF,
+and HTML formats.  This is currently only available in the command-line
+application.  Solutions exported as Pandoc Markdown are only suitable for use
+with LaTeX and HTML.  Exporting solutions as PDF requires
+[Pandoc](https://pandoc.org/) and a LaTeX installation (such as [TeX
+Live](https://www.tug.org/texlive/) or [MiKTeX](https://miktex.org/)).  There
+is currently no built-in support for customizing export, although you can edit
+the Pandoc Markdown output before processing it via Pandoc.
 
 To save solutions and also create a QTI file, use
 `--solutions <solutions_file>`.  To save solutions without creating a QTI
 file, use `--only-solutions <solutions_file>`.  `<solutions_file>` must have
-an `.md` or `.markdown` extension for Pandoc Markdown export or `.pdf` for PDF
-export.
+an `.md` or `.markdown` extension for Pandoc Markdown export, `.pdf` for PDF
+export, or `.html` for HTML export.  `--solutions` and `--only-solutions` can
+be used multiple times to generate solutions in multiple formats.
+
+When using `--only-solutions`, be aware that solutions and QTI may differ if
+executable code blocks generate problems using random numbers. Consider
+creating solutions and QTI at the same time (`--solutions`), or setting a seed
+for the random number generator so it is reproducible.
 
 
 ### Customizing questions for solutions
