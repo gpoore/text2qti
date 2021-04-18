@@ -780,7 +780,16 @@ class Quiz(object):
             tempdir_path = pathlib.Path(tempdir)
             code_path = tempdir_path / f'{h.hexdigest()[:16]}.code'
             code_path.write_text(code, encoding='utf8')
-            cmd = [executable, code_path.as_posix()]
+            if platform.system() == 'Windows':
+                # Modify executable since subprocess.Popen() ignores PATH
+                # * https://bugs.python.org/issue15451
+                # * https://bugs.python.org/issue8557
+                which_executable = shutil.which(executable)
+                if which_executable is None:
+                    raise Text2qtiError(f'Failed to execute code (missing executable "{executable}")')
+                cmd = [which_executable, code_path.as_posix()]
+            else:
+                cmd = [executable, code_path.as_posix()]
             try:
                 # stdin is needed for GUI because standard file handles can't
                 # be inherited

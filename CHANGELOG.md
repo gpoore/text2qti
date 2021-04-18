@@ -3,6 +3,10 @@
 
 ## v0.6.0 (dev)
 
+* Executable code blocks now use PATH to locate executables under Windows, and
+  thus now work with Python environments.  Previously PATH was ignored under
+  Windows due to the implementation details of Python's `subprocess.Popen()`
+  (#34, #42).
 * Added command-line options `--solutions` and `--only-solutions` to
   command-line application.  These generate solutions in Pandoc Markdown,
   PDF, and HTML formats.  Pandoc Markdown solutions are only suitable for
