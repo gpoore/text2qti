@@ -504,6 +504,14 @@ operating systems.  All image paths not starting with `http://` or `https://`
 are assumed to refer to local image files (files on your machine), and will
 result in errors if these files are not found.
 
+[Pandoc-style attributes](https://pandoc.org/MANUAL.html#images) can be used
+with images:
+```
+![alt_text](image_file){#id .class1 .class2 width=10em height=5em}
+```
+This allows image id, classes, and dimensions to be specified without
+resorting to HTML.
+
 
 ### LaTeX
 

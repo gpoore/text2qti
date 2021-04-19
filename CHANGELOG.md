@@ -3,6 +3,8 @@
 
 ## v0.6.0 (dev)
 
+* Added support for Pandoc-style attributes on images:
+  `![alt_text](image_file){#id .class1 .class2 width=10em height=5em}` (#41).
 * Executable code blocks now use PATH to locate executables under Windows, and
   thus now work with Python environments.  Previously PATH was ignored under
   Windows due to the implementation details of Python's `subprocess.Popen()`

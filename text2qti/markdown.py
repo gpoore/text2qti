@@ -32,6 +32,14 @@ import markdown.extensions.fenced_code
 import markdown.extensions.footnotes
 import markdown.extensions.tables
 import markdown.extensions.md_in_html
+from markdown.inlinepatterns import ImageInlineProcessor, IMAGE_LINK_RE
+
+from .config import Config
+from .err import Text2qtiError
+from .version import __version__ as version
+from . import pymd_pandoc_attr
+
+
 md_extensions = [
     markdown.extensions.smarty.makeExtension(),
     markdown.extensions.sane_lists.makeExtension(),
@@ -40,12 +48,8 @@ md_extensions = [
     markdown.extensions.footnotes.makeExtension(),
     markdown.extensions.tables.makeExtension(),
     markdown.extensions.md_in_html.makeExtension(),
+    pymd_pandoc_attr.makeExtension(),
 ]
-from markdown.inlinepatterns import ImageInlineProcessor, IMAGE_LINK_RE
-
-from .config import Config
-from .err import Text2qtiError
-from .version import __version__ as version
 
 
 
