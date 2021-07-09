@@ -3,6 +3,8 @@
 
 ## v0.6.0 (dev)
 
+* For question groups, the value of `pick` is now allowed to equal the total
+  number of questions (#44).
 * Added support for Pandoc-style attributes on images:
   `![alt_text](image_file){#id .class1 .class2 width=10em height=5em}` (#41).
 * Executable code blocks now use PATH to locate executables under Windows, and

@@ -531,7 +531,7 @@ class Group(object):
         self.questions.append(question)
 
     def finalize(self):
-        if len(self.questions) <= self.pick:
+        if len(self.questions) < self.pick:
             raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.pick+1}')
         if self.solutions_pick is not None and len(self.questions) < self.solutions_pick:
             raise Text2qtiError(f'Question group only contains {len(self.questions)} questions, needs at least {self.solutions_pick}')
