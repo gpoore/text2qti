@@ -3,23 +3,31 @@
 
 ## v0.6.0 (dev)
 
+* Fixed a bug with error handling when Pandoc fails to export solutions (#47).
+
 * For question groups, the value of `pick` is now allowed to equal the total
   number of questions (#44).
+
 * Added support for Pandoc-style attributes on images:
   `![alt_text](image_file){#id .class1 .class2 width=10em height=5em}` (#41).
+
 * Executable code blocks now use PATH to locate executables under Windows, and
   thus now work with Python environments.  Previously PATH was ignored under
   Windows due to the implementation details of Python's `subprocess.Popen()`
   (#34, #42).
+
 * Added command-line options `--solutions` and `--only-solutions` to
   command-line application.  These generate solutions in Pandoc Markdown,
   PDF, and HTML formats.  Pandoc Markdown solutions are only suitable for
   use with LaTeX and HTML (#35).
+
 * Added quiz-level options `feedback is solution`, `solutions sample groups`,
   and `solutions randomize groups` for customizing solutions.  Added
   group-level option `solutions pick` for customizing solutions.  Added
   question-level syntax involving `!` for providing solutions.
+
 * In quiz parsing, simplified question type handling and error checking.
+
 * Fixed bug in calculation of total points possible per quiz.
 
 

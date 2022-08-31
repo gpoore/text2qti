@@ -143,8 +143,8 @@ def main():
                             check=True,
                             encoding='utf8'
                         )
-                    except subprocess.CalledProcessError:
-                        raise Text2qtiError(f'Pandoc failed:\n{"-"*78}\n{proc.stderr}\n{"-"*78}')
+                    except subprocess.CalledProcessError as e:
+                        raise Text2qtiError(f'Pandoc failed:\n{"-"*78}\n{e}\n{"-"*78}')
                 elif solutions_path.suffix.lower() == '.html':
                     if not shutil.which('pandoc'):
                         raise Text2qtiError('Exporting solutions in HTML format requires Pandoc (https://pandoc.org/)')
@@ -160,8 +160,8 @@ def main():
                             check=True,
                             encoding='utf8'
                         )
-                    except subprocess.CalledProcessError:
-                        raise Text2qtiError(f'Pandoc failed:\n{"-"*78}\n{proc.stderr}\n{"-"*78}')
+                    except subprocess.CalledProcessError as e:
+                        raise Text2qtiError(f'Pandoc failed:\n{"-"*78}\n{e}\n{"-"*78}')
                 elif solutions_path.suffix.lower() in ('.md', '.markdown'):
                     solutions_path.write_text(solutions_text, encoding='utf8')
                 else:
