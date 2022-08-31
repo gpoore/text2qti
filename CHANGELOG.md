@@ -3,6 +3,9 @@
 
 ## v0.6.0 (dev)
 
+* Leading plus signs `+` are now stripped for siunitx notation within
+  Markdown.
+
 * Added `amsmath`, `amssymb`, and `siunitx` to template for LaTeX solutions
   export.
 

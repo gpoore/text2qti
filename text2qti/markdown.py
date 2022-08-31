@@ -314,6 +314,7 @@ class Markdown(object):
         number = number.lower()
         if 'e' in number:
             significand, magnitude = number.split('e', 1)
+            magnitude = magnitude.lstrip('+')
             latex_number = f'{significand}\\times 10^{{{magnitude}}}'
         else:
             latex_number = number
