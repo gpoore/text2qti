@@ -59,6 +59,9 @@ _latex_templates = {
         \usepackage[margin=1in]{geometry}
         % Graphics
         \usepackage{graphicx}
+        % Math/science
+        \usepackage{amsmath, amssymb}
+        \usepackage{siunitx}
         % Symbols for solutions
         \usepackage{fontawesome}
         % Answers and solutions use itemize with custom item symbols

@@ -3,6 +3,9 @@
 
 ## v0.6.0 (dev)
 
+* Added `amsmath`, `amssymb`, and `siunitx` to template for LaTeX solutions
+  export.
+
 * Fixed a bug with error handling when Pandoc fails to export solutions (#47).
 
 * For question groups, the value of `pick` is now allowed to equal the total
