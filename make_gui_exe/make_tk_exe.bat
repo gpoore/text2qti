@@ -11,7 +11,7 @@ if not exist text2qti_tk.pyw (
 )
 
 REM Create and activate a conda env for packaging the .exe
-call conda create -y --name make_text2qti_gui_exe python=3.8 --no-default-packages
+call conda create -y --name make_text2qti_gui_exe python=3.9 --no-default-packages
 call conda activate make_text2qti_gui_exe
 REM List conda envs -- useful for debugging
 call conda info --envs
