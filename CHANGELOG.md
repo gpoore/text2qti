@@ -1,7 +1,7 @@
 # Change Log
 
 
-## v0.6.0 (dev)
+## v0.6.0 (2022-08-31)
 
 * Leading plus signs `+` are now stripped for siunitx notation within
   Markdown.
