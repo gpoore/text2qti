@@ -299,7 +299,7 @@ class Markdown(object):
         return mathml
 
 
-    siunitx_num_number_re = re.compile(r'[+-]?(?:0|(?:[1-9][0-9]*(?:\.[0-9]+)?|0?\.[0-9]+)(?:[eE][+-]?[1-9][0-9]*)?)$')
+    siunitx_num_number_re = re.compile(r'[+-]?(?:0|(?:[1-9][0-9]*(?:\.[0-9]+)?|0?\.[0-9]+)(?:[eE][+-]?(?:[1-9][0-9]*|0+[1-9][0-9]*))?)$')
 
     def siunitx_num_to_plain_latex(self, number: str, in_math: bool=False) -> str:
         r'''
@@ -314,7 +314,9 @@ class Markdown(object):
         number = number.lower()
         if 'e' in number:
             significand, magnitude = number.split('e', 1)
-            magnitude = magnitude.lstrip('+')
+            magnitude = magnitude.lstrip('+').lstrip('0')
+            if magnitude.startswith('-0'):
+                magnitude = magnitude[0] + magnitude[1:].lstrip('0')
             latex_number = f'{significand}\\times 10^{{{magnitude}}}'
         else:
             latex_number = number

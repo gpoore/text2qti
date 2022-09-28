@@ -1,6 +1,14 @@
 # Change Log
 
 
+## v0.7.0 (dev)
+
+* Numbers in scientific notation with leading zeros in the exponent are now
+  permitted for siunitx notation within Markdown.  The zeros are stripped
+  during processing.
+
+
+
 ## v0.6.0 (2022-08-31)
 
 * Leading plus signs `+` are now stripped for siunitx notation within
