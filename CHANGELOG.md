@@ -3,6 +3,11 @@
 
 ## v0.7.0 (dev)
 
+* Switched packaging to `pyproject.toml`.
+
+* Updated dependencies:  Python Markdown >=3.4.4 is now required to avoid HTML
+  escaping bugs in prior 3.4.x releases.  Require latest bespon (>=0.7.0).
+
 * Numbers in scientific notation with leading zeros in the exponent are now
   permitted for siunitx notation within Markdown.  The zeros are stripped
   during processing.

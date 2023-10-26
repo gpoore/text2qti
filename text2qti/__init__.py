@@ -9,6 +9,3 @@
 
 
 from .version import __version__, __version_info__
-from .config import Config
-from .quiz import Quiz
-from .qti import QTI
