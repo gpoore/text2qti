@@ -237,7 +237,7 @@ class Markdown(object):
         return string
 
 
-    CANVAS_EQUATION_TEMPLATE = '<img class="equation_image" title="{latex_xml_escaped}" src="{latex_render_url}/{latex_url_escaped}" alt="LaTeX: {latex_xml_escaped}" data-equation-content="{latex_xml_escaped}">'
+    CANVAS_EQUATION_TEMPLATE = '<img class="equation_image" title="{latex_xml_escaped}" src="{latex_render_url}/{latex_url_escaped}?scale=1" alt="LaTeX: {latex_xml_escaped}" data-equation-content="{latex_xml_escaped}" data-ignore-a11y-check="" >'
 
     def latex_to_canvas_img(self, latex: str) -> str:
         '''
@@ -256,7 +256,7 @@ class Markdown(object):
         latex_render_url = self.config['latex_render_url'].rstrip('/')
         latex_xml_escaped = self.xml_escape(latex)
         # Double url escaping is required
-        latex_url_escaped = urllib.parse.quote(urllib.parse.quote(latex))
+        latex_url_escaped = urllib.parse.quote(latex, safe='')
         return self.CANVAS_EQUATION_TEMPLATE.format(latex_render_url=latex_render_url,
                                                     latex_xml_escaped=latex_xml_escaped,
                                                     latex_url_escaped=latex_url_escaped)

@@ -8,6 +8,12 @@
 * Updated dependencies:  Python Markdown >=3.4.4 is now required to avoid HTML
   escaping bugs in prior 3.4.x releases.  Require latest bespon (>=0.7.0).
 
+* Setting a custom LaTeX rendering URL should typically not be necessary with
+  recent versions of Canvas.  The LaTeX rendering URL now defaults to
+  `/equation_images/`.  Improved config file handling related to LaTeX
+  rendering URL.  Updated LaTeX img template for recent Canvas.  LaTeX URLs
+  now escape the slash character `/` in equations.
+
 * Numbers in scientific notation with leading zeros in the exponent are now
   permitted for siunitx notation within Markdown.  The zeros are stripped
   during processing.

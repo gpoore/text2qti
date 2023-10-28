@@ -12,9 +12,9 @@ import argparse
 import os
 import pathlib
 import platform
-from re import sub
 import shutil
 import subprocess
+import sys
 import textwrap
 from .version import __version__ as version
 from .err import Text2qtiError
@@ -56,11 +56,13 @@ def main():
 
     config = Config()
     config.load()
-    if not config.loaded_config_file:
+    if not config.loaded_config_file and sys.stdout.isatty() and sys.stdin.isatty():
         latex_render_url = input(textwrap.dedent('''\
             It looks like text2qti has not been installed on this machine
-            before.  Would you like to set a default LaTeX rendering URL?  If
-            no, press ENTER.  If yes, provide the URL and press ENTER.
+            before.  Would you like to set a custom LaTeX rendering URL?  This
+            should typically not be necessary with recent version of Canvas.
+            If no, press ENTER to use the default ("/equation_images/").  If
+            yes, provide the URL and press ENTER.
 
             If you use Canvas, the URL will be something like
                 https://<institution>.instructure.com/equation_images/
@@ -75,9 +77,8 @@ def main():
             the appropriate value for your institution.
 
             If you do not use Canvas or software with a compatible LaTeX
-            rendering URL, you should not set a rendering URL.  You may still
-            be able to use LaTeX via the command-line option
-            "--pandoc-mathml".
+            rendering URL, you may still be able to use LaTeX via the
+            command-line option "--pandoc-mathml".
 
             LaTeX rendering URL:  '''))
         latex_render_url = latex_render_url.strip()

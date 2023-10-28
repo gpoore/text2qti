@@ -262,7 +262,9 @@ plain text, not Markdown, due to the QTI format.
 When you run `text2qti` for the first time, it will attempt to create a
 configuration file called `.text2qti.bespon` in your home or user directory.
 It will also ask for an institutional LaTeX rendering URL.  This is only
-needed if you plan to use LaTeX math; if not, simply press ENTER to continue.
+needed if you plan to use LaTeX math and if the default URL
+`/equation_images/` will not work with your system.  In typical cases, you can
+simply press ENTER to continue with the default value.
  * If you use Canvas, log into your account and look in the browser address
    bar.  You will typically see an address that starts with something like
    `institution.instructure.com/` or `canvas.institution.edu/`, with
@@ -515,12 +517,13 @@ resorting to HTML.
 
 ### LaTeX
 
-By default, text2qti supports LaTeX using a Canvas LaTeX rendering URL.  This
-can be set during installation, or by editing the configuration file
-`.text2qti.bespon` in your home or user directory.  It is possible to convert
-LaTeX to MathML instead with the `--pandoc-mathml` command-line option.  This
-requires that [Pandoc](https://pandoc.org/) be installed for converting LaTeX
-to MathML.  For example, to create a quiz you might run a command like this:
+By default, text2qti supports LaTeX using a Canvas LaTeX rendering URL that
+defaults to `/equation_images/`.  This can be customized during installation,
+or by editing the configuration file `.text2qti.bespon` in your home or user
+directory.  It is possible to convert LaTeX to MathML instead with the
+`--pandoc-mathml` command-line option.  This requires that
+[Pandoc](https://pandoc.org/) be installed for converting LaTeX to MathML.
+For example, to create a quiz you might run a command like this:
 ```
 text2qti --pandoc-mathml quiz.txt
 ```

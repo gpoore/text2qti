@@ -29,6 +29,7 @@ class Config(dict):
         self.update(dict(*args, **kwargs))
 
     _defaults = {
+        'latex_render_url': '/equation_images/',
         'pandoc_mathml': False,
         'run_code_blocks': False,
     }
