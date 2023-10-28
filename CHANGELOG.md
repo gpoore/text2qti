@@ -8,6 +8,9 @@
 * Updated dependencies:  Python Markdown >=3.4.4 is now required to avoid HTML
   escaping bugs in prior 3.4.x releases.  Require latest bespon (>=0.7.0).
 
+* Fixed bug that prevented indentation starting with a tab from being parsed
+  correctly (#68).
+
 * Setting a custom LaTeX rendering URL should typically not be necessary with
   recent versions of Canvas.  The LaTeX rendering URL now defaults to
   `/equation_images/`.  Improved config file handling related to LaTeX

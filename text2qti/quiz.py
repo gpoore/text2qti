@@ -687,7 +687,7 @@ class Quiz(object):
                                     break
                             else:
                                 if indent_expandtabs is None:
-                                    if not line.startswith(' '):
+                                    if not line.startswith((' ', '\t')):
                                         break
                                     indent_expandtabs = ' '*(len(line_expandtabs)-len(line_expandtabs.lstrip(' ')))
                                     if len(indent_expandtabs) < 2:
