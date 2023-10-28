@@ -11,6 +11,8 @@
 * Fixed bug that prevented indentation starting with a tab from being parsed
   correctly (#68).
 
+* Improved README explanation of indentation in the text2qti format (#59).
+
 * Setting a custom LaTeX rendering URL should typically not be necessary with
   recent versions of Canvas.  The LaTeX rendering URL now defaults to
   `/equation_images/`.  Improved config file handling related to LaTeX

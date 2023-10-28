@@ -137,6 +137,36 @@ Text:  General comments about the next questions.
 ```
 
 
+## File format
+
+The text2qti file format is a plain-text file format that serves as a wrapper
+around Markdown.  Each individual chunk of text (question, answer, feedback,
+etc.) is Markdown. But the outermost level of text (no indentation) is the
+text2qti plain-text quiz format.  The fact that the Markdown is indented
+within the text2qti format is only really visible when multiple lines of
+Markdown are involved. The indentation for each chunk of Markdown text doesn't
+have to be 4 spaces; it just has to be the same for the whole chunk of text
+that makes up each element of a question.
+
+```
+**No indentation: text2qti wrapper syntax for Markdown**
+|
+|   **Indentation: Now using Markdown**
+|   **Everything below this must have at least this indentation**
+|   |
+1.  Question.
+|   |
+|   Question continued, so indentation.
+|   |
+*a) Correct answer.
+|   |
+|   Correct answer continued, so indentation.
+|   |
+b)  Another answer.
+|   |
+```
+
+
 ## Installation
 
 Install **Python 3.6+** if it is not already available on your machine.  See
@@ -343,7 +373,8 @@ For code to be executed, there are a few requirements:
 
 * The code block fences (` ``` `) must not be indented; the code block must be
   at the top level of the document, not part of a question, choice, or
-  feedback.
+  feedback.  In contrast, a regular code block that is part of a question,
+  choice, or feedback must be indented as part of that quiz element.
 
 * As a security measure, code execution is disabled by default, so executable
   code blocks will trigger an error.  Run `text2qti` with the option
