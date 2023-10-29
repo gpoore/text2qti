@@ -16,19 +16,19 @@ call conda activate make_text2qti_gui_exe
 REM List conda envs -- useful for debugging
 call conda info --envs
 REM Install dependencies
-pip install bespon
-pip install markdown
-pip install pyinstaller
-if exist ..\setup.py (
-    if exist ..\text2qti (
-        cd ..
-        pip install .
-        cd make_gui_exe
+python -m pip install bespon
+python -m pip install markdown
+python -m pip install pyinstaller
+if exist "..\pyproject.toml" (
+    if exist "..\text2qti\" (
+        cd ..\..
+        python -m pip install .\text2qti
+        cd text2qti\make_gui_exe
     ) else (
-        pip install text2qti
+        python -m pip install text2qti
     )
 ) else (
-    pip install text2qti
+    python -m pip install text2qti
 )
 REM Build .exe
 FOR /F "tokens=* USEBACKQ" %%g IN (`python -c "import text2qti; print(text2qti.__version__)"`) do (SET "TEXT2QTI_VERSION=%%g")
@@ -40,7 +40,7 @@ REM List conda envs -- useful for debugging
 call conda info --envs
 REM Cleanup
 move dist\text2qti_tk_%TEXT2QTI_VERSION%.exe text2qti_tk_%TEXT2QTI_VERSION%.exe
-if exist "__pycache__" (
+if exist "__pycache__\" (
     rd /s /q "__pycache__"
 )
 rd /s /q "build"

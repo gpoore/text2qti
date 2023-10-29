@@ -1,6 +1,13 @@
 # Change Log
 
 
+## v0.7.1 (2023-10-29)
+
+* Updated `.bat` file for generating Windows GUI executable to account for
+  `pyproject.toml` and recent Python versions.
+
+
+
 ## v0.7.0 (2023-10-28)
 
 * Switched packaging to `pyproject.toml`.
