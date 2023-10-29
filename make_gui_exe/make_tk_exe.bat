@@ -11,7 +11,7 @@ if not exist text2qti_tk.pyw (
 )
 
 REM Create and activate a conda env for packaging the .exe
-call conda create -y --name make_text2qti_gui_exe python=3.9 --no-default-packages
+call conda create -y --name make_text2qti_gui_exe python=3.11 --no-default-packages
 call conda activate make_text2qti_gui_exe
 REM List conda envs -- useful for debugging
 call conda info --envs
@@ -40,7 +40,9 @@ REM List conda envs -- useful for debugging
 call conda info --envs
 REM Cleanup
 move dist\text2qti_tk_%TEXT2QTI_VERSION%.exe text2qti_tk_%TEXT2QTI_VERSION%.exe
-rd /s /q "__pycache__"
+if exist "__pycache__" (
+    rd /s /q "__pycache__"
+)
 rd /s /q "build"
 rd /s /q "dist"
 del *.spec

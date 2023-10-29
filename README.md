@@ -169,7 +169,7 @@ b)  Another answer.
 
 ## Installation
 
-Install **Python 3.6+** if it is not already available on your machine.  See
+Install **Python 3.8+** if it is not already available on your machine.  See
 https://www.python.org/, or use the package manager or app store for your
 operating system.  Depending on your use case, you may want to consider a
 Python distribution like [Anaconda](https://www.anaconda.com/distribution/)

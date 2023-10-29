@@ -1,7 +1,7 @@
 # Change Log
 
 
-## v0.7.0 (dev)
+## v0.7.0 (2023-10-28)
 
 * Switched packaging to `pyproject.toml`.
 
