@@ -32,11 +32,13 @@ class Config(dict):
         'latex_render_url': '/equation_images/',
         'pandoc_mathml': False,
         'run_code_blocks': False,
+        'images_base64': False,
     }
     _key_check = {
         'latex_render_url': lambda x: isinstance(x, str),
         'pandoc_mathml': lambda x: isinstance(x, bool),
         'run_code_blocks': lambda x: isinstance(x, bool),
+        'images_base64': lambda x: isinstance(x, bool),
     }
     _config_path = pathlib.Path('~/.text2qti.bespon').expanduser()
 

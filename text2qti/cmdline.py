@@ -52,6 +52,8 @@ def main():
                                  'Consider creating solutions and QTI together, or setting a seed for the random number generator so it is reproducible.')
     parser.add_argument('file',
                         help='File to convert from text to QTI')
+    parser.add_argument('--images-base64', action='store_const', const=True,
+                        help='Save images as base64-encoded data URIs in the HTML file')
     args = parser.parse_args()
 
     config = Config()
@@ -91,6 +93,9 @@ def main():
         config['run_code_blocks'] = args.run_code_blocks
     if args.pandoc_mathml is not None:
         config['pandoc_mathml'] = args.pandoc_mathml
+
+    if args.images_base64 is not None:
+        config['images_base64'] = args.images_base64
 
     file_path = pathlib.Path(args.file).expanduser()
     file_path_abs = file_path.absolute()
