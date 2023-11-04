@@ -192,6 +192,18 @@ python -m pip install text2qti
 Depending on your system, you may need to use `python3` instead of `python`.
 This will often be the case for Linux and OS X.
 
+### Demo
+
+There is a demo `[quiz.txt](demo/quiz.txt)` file with a set of sample questions that can be converted into a QTI quiz on Canvas.
+
+To test out this python package, you can download the `[quiz.txt](demo/quiz.txt)` file, and after installing `text2qti`, run it as follows:
+
+```
+text2qti quiz.txt
+```
+
+The output of this script will be a zip file `[quiz.zip](demo/quiz.zip)` that can be imported into Canvas.
+Once the import is done, a quiz will appear - a PDF print of that quiz will look similar to `[quiz.pdf](demo/quiz.pdf)`
 
 ### Upgrading
 

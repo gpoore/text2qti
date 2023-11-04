@@ -1,0 +1,54 @@
+Quiz title: Sample Quiz
+Quiz description: Add a Description of the quiz
+
+Title: Multiple Choice Q
+Points: 2
+1.  What is 2+3?
+... General question feedback.
++   Feedback for correct answer.
+-   Feedback for incorrect answer.
+a)  6
+... Feedback for this particular answer.
+b)  1
+... Feedback for this particular answer.
+*c) 5
+... Feedback for this particular answer.
+
+Title: Checkbox Q
+Points: 2
+1.  Which of the following are dinosaurs?
+[ ] Woolly mammoth
+[*] Tyrannosaurus rex
+[*] Triceratops
+[ ] Smilodon fatalis
+
+Title: Numerical Q1
+Points: 2
+1.  What is the square root of 2?
+=   1.4142 +- 0.0001
+
+Title: Numerical Q2
+Points: 2
+1.  What is the cube root of 2?
+=   [1.2598, 1.2600]
+
+Title: Fill in the Blank
+Points: 2
+1.  Who lives at the North Pole?
+*   Santa
+*   Santa Claus
+*   Father Christmas
+*   Saint Nicholas
+*   Saint Nick
+
+Title: Essay Question
+Points: 2
+1.  Write an essay.
+... General question feedback.
+____
+
+Title: Upload a File
+Points: 2
+1.  Upload a file.
+... General question feedback.
+^^^^
