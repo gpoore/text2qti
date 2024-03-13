@@ -32,6 +32,7 @@ import markdown.extensions.fenced_code
 import markdown.extensions.footnotes
 import markdown.extensions.tables
 import markdown.extensions.md_in_html
+import markdown.extensions.codehilite
 from markdown.inlinepatterns import ImageInlineProcessor, IMAGE_LINK_RE
 
 from .config import Config
@@ -48,6 +49,7 @@ md_extensions = [
     markdown.extensions.footnotes.makeExtension(),
     markdown.extensions.tables.makeExtension(),
     markdown.extensions.md_in_html.makeExtension(),
+    markdown.extensions.codehilite.makeExtension(noclasses=True),
     pymd_pandoc_attr.makeExtension(),
 ]
 
