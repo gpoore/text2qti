@@ -10,12 +10,12 @@
 
 from typing import Union
 
-
-TEMPLATE = '''\
+TEMPLATE = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <quiz identifier="{assessment_identifier}" xmlns="http://canvas.instructure.com/xsd/cccv1p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://canvas.instructure.com/xsd/cccv1p0 https://canvas.instructure.com/xsd/cccv1p0.xsd">
   <title>{title}</title>
   <description>{description}</description>
+  <shuffle_questions>{shuffle_questions}</shuffle_questions>
   <shuffle_answers>{shuffle_answers}</shuffle_answers>
   <scoring_policy>keep_highest</scoring_policy>
   <hide_results>{hide_results}</hide_results>
@@ -28,7 +28,7 @@ TEMPLATE = '''\
   <show_correct_answers>{show_correct_answers}</show_correct_answers>
   <anonymous_submissions>false</anonymous_submissions>
   <could_be_locked>false</could_be_locked>
-  <allowed_attempts>1</allowed_attempts>
+  <allowed_attempts>{allowed_attempts}</allowed_attempts>
   <one_question_at_a_time>{one_question_at_a_time}</one_question_at_a_time>
   <cant_go_back>{cant_go_back}</cant_go_back>
   <available>false</available>
@@ -80,31 +80,39 @@ TEMPLATE = '''\
   <assignment_overrides>
   </assignment_overrides>
 </quiz>
-'''
+"""
 
 
-def assessment_meta(*,
-                    assessment_identifier: str,
-                    assignment_group_identifier: str,
-                    assignment_identifier: str,
-                    title_xml: str,
-                    description_html_xml: str,
-                    points_possible: Union[int, float],
-                    shuffle_answers: str,
-                    show_correct_answers: str,
-                    one_question_at_a_time: str,
-                    cant_go_back: str) -> str:
-    '''
+def assessment_meta(
+    *,
+    assessment_identifier: str,
+    assignment_group_identifier: str,
+    assignment_identifier: str,
+    title_xml: str,
+    description_html_xml: str,
+    points_possible: Union[int, float],
+    shuffle_answers: str,
+    shuffle_questions: str,
+    show_correct_answers: str,
+    one_question_at_a_time: str,
+    cant_go_back: str,
+    allowed_attempts: str,
+) -> str:
+    """
     Generate `assessment_meta.xml`.
-    '''
-    return TEMPLATE.format(assessment_identifier=assessment_identifier,
-                           assignment_identifier=assignment_identifier,
-                           assignment_group_identifier=assignment_group_identifier,
-                           title=title_xml,
-                           description=description_html_xml,
-                           points_possible=points_possible,
-                           shuffle_answers=shuffle_answers,
-                           show_correct_answers=show_correct_answers,
-                           hide_results='always' if show_correct_answers == 'false' else '',
-                           one_question_at_a_time=one_question_at_a_time,
-                           cant_go_back=cant_go_back)
+    """
+    return TEMPLATE.format(
+        assessment_identifier=assessment_identifier,
+        assignment_identifier=assignment_identifier,
+        assignment_group_identifier=assignment_group_identifier,
+        title=title_xml,
+        description=description_html_xml,
+        points_possible=points_possible,
+        shuffle_answers=shuffle_answers,
+        shuffle_questions=shuffle_questions,
+        show_correct_answers=show_correct_answers,
+        hide_results="always" if show_correct_answers == "false" else "",
+        one_question_at_a_time=one_question_at_a_time,
+        cant_go_back=cant_go_back,
+        allowed_attempts=allowed_attempts,
+    )

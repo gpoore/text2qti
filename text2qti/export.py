@@ -293,6 +293,8 @@ def question_to_markdown(question: Question, *,
     elif question.type == 'file_upload_question':
         if not solutions:
             quiz_md.append(indent(_templates['file_upload_placeholder'], 4))
+    elif question.type =='matching_question':
+        pass
     else:
         raise ValueError
 
