@@ -10,6 +10,8 @@
 
 import atexit
 import hashlib
+import html
+from html.parser import HTMLParser
 import json
 import pathlib
 import platform
@@ -116,6 +118,62 @@ class Text2qtiImagePattern(ImageInlineProcessor):
                 self.text2qti_md.images[image.id] = image
             node.attrib['src'] = image.src_path
         return node, start, end
+
+
+
+
+class HTMLTextEscaper(HTMLParser):
+    '''
+    Parse HTML and escape <, >, & in text content while preserving tags.
+
+    This is used to ensure that characters like < and > appearing in text
+    content within raw HTML elements (e.g., <output>x < 5</output>) are
+    properly escaped before the entire HTML is XML-escaped for QTI output.
+    '''
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.result: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # Reconstruct start tag as-is
+        attr_str = ''
+        for name, value in attrs:
+            if value is None:
+                attr_str += f' {name}'
+            else:
+                attr_str += f' {name}="{value}"'
+        self.result.append(f'<{tag}{attr_str}>')
+
+    def handle_endtag(self, tag: str) -> None:
+        # Reconstruct end tag as-is
+        self.result.append(f'</{tag}>')
+
+    def handle_data(self, data: str) -> None:
+        # Escape text content using html.escape()
+        self.result.append(html.escape(data))
+
+    def handle_entityref(self, name: str) -> None:
+        # Preserve entity references
+        self.result.append(f'&{name};')
+
+    def handle_charref(self, name: str) -> None:
+        # Preserve character references
+        self.result.append(f'&#{name};')
+
+    def handle_comment(self, data: str) -> None:
+        # Preserve comments
+        self.result.append(f'<!--{data}-->')
+
+    def handle_decl(self, decl: str) -> None:
+        # Preserve declarations
+        self.result.append(f'<!{decl}>')
+
+    def handle_pi(self, data: str) -> None:
+        # Preserve processing instructions
+        self.result.append(f'<?{data}>')
+
+    def get_result(self) -> str:
+        return ''.join(self.result)
 
 
 
@@ -235,6 +293,18 @@ class Markdown(object):
         for char, esc in escapes:
             string = string.replace(char, esc)
         return string
+
+    def escape_html_text_content(self, html_string: str) -> str:
+        '''
+        Escape <, >, & in HTML text content while preserving tags.
+
+        This ensures that characters appearing in text within raw HTML elements
+        (e.g., <output>x < 5</output>) are properly escaped before the HTML
+        is XML-escaped for QTI output.
+        '''
+        escaper = HTMLTextEscaper()
+        escaper.feed(html_string)
+        return escaper.get_result()
 
 
     CANVAS_EQUATION_TEMPLATE = '<img class="equation_image" title="{latex_xml_escaped}" src="{latex_render_url}/{latex_url_escaped}?scale=1" alt="LaTeX: {latex_xml_escaped}" data-equation-content="{latex_xml_escaped}" data-ignore-a11y-check="" >'
@@ -521,7 +591,8 @@ class Markdown(object):
                 html = html[3:]
             if html.endswith('</p>'):
                 html = html[:-4]
-        xml = self.xml_escape(html, squotes=False, dquotes=False)
+        html_escaped = self.escape_html_text_content(html)
+        xml = self.xml_escape(html_escaped, squotes=False, dquotes=False)
         return xml
 
     def _md_to_pandoc_dispatch(self, match: typing.Match[str],
