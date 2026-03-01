@@ -61,3 +61,6 @@ version = {attr = 'text2qti.__version__'}
 
 [tool.ruff]
 line-length = 120
+
+[tool.setuptools.package-data]
+text2qti = ['templates/**/*']

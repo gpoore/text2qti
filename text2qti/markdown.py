@@ -144,6 +144,8 @@ class Markdown(object):
 
         if config is None:
             self.latex_to_qti = self._latex_to_qti_unconfigured
+        elif config['template'] == 'brightspace':
+            self.latex_to_qti = self.latex_to_brightspace_inlinemath
         elif config['pandoc_mathml']:
             self.latex_to_qti = self.latex_to_pandoc_mathml
             self._prep_cache()
@@ -160,6 +162,8 @@ class Markdown(object):
     def _latex_to_qti_unconfigured(self, latex: str):
         raise Text2qtiError('Cannot convert LaTeX to QTI unless Markdown configuration is provided')
 
+    def latex_to_brightspace_inlinemath(self, latex: str):
+        return r'\\\(' + latex + r'\\\)'
 
     def _prep_cache(self):
         self._cache_path = pathlib.Path('_text2qti_cache.zip')

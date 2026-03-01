@@ -31,12 +31,14 @@ class Config(dict):
     _defaults = {
         'latex_render_url': '/equation_images/',
         'pandoc_mathml': False,
-        'run_code_blocks': False,
+        'template': 'canvas',
+        'run_code_blocks': False
     }
     _key_check = {
         'latex_render_url': lambda x: isinstance(x, str),
         'pandoc_mathml': lambda x: isinstance(x, bool),
         'run_code_blocks': lambda x: isinstance(x, bool),
+        'template': lambda x: x in ['canvas', 'brightspace']
     }
     _config_path = pathlib.Path('~/.text2qti.bespon').expanduser()
 

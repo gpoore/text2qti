@@ -84,6 +84,7 @@ TEMPLATE = '''\
 
 
 def assessment_meta(*,
+                    template: str,
                     assessment_identifier: str,
                     assignment_group_identifier: str,
                     assignment_identifier: str,

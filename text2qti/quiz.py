@@ -27,7 +27,7 @@ import tempfile
 from typing import Dict, List, Optional, Set, Union
 from .config import Config
 from .err import Text2qtiError
-from .markdown import Image, Markdown
+from .pandocmarkdown import Image, Markdown
 
 
 

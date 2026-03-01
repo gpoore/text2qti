@@ -1,0 +1,16 @@
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield>
+              <fieldlabel>cc_profile</fieldlabel>
+              <fieldentry>{question_type}</fieldentry>
+            </qtimetadatafield>
+            <qtimetadatafield>
+              <fieldlabel>cc_weighting</fieldlabel>
+              <fieldentry>{points_possible}</fieldentry>
+            </qtimetadatafield>
+            <qtimetadatafield>
+              <fieldlabel>qmd_computerscored</fieldlabel>
+              <fieldentry>{qmd_computerscored}</fieldentry>
+            </qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>

@@ -39,6 +39,9 @@ def main():
                         help='Allow special code blocks to be executed and insert their output (off by default for security)')
     parser.add_argument('--pandoc-mathml', action='store_const', const=True,
                         help='Convert LaTeX math to MathML using Pandoc (this will create a cache file "_text2qti_cache.zip" in the quiz file directory)')
+    parser.add_argument('--template', choices=['canvas', 'brightspace'],
+                        default='canvas',
+                        help='Use one of the available QTI XML templates')
     soln_group = parser.add_mutually_exclusive_group()
     soln_group.add_argument('--solutions', action='append', metavar='SOLUTIONS_FILE',
                             help='Save solutions in Pandoc Markdown (.md), PDF (.pdf), or HTML (.html) format, and also create a QTI file. '
@@ -91,6 +94,9 @@ def main():
         config['run_code_blocks'] = args.run_code_blocks
     if args.pandoc_mathml is not None:
         config['pandoc_mathml'] = args.pandoc_mathml
+    config['template'] = (args.template
+                          if args.template is not None else
+                          config['template'])
 
     file_path = pathlib.Path(args.file).expanduser()
     file_path_abs = file_path.absolute()

@@ -1,0 +1,9 @@
+{
+    "multiple_choice_question": "cc.multiple_choice.v0p1",
+    "true_false_question": "cc.true_false.v0p1",
+    "multiple_answers_question": "cc.multiple_response.v0p1",
+    "essay_question": "cc.essay.v0p1",
+    "additional_keys": {
+        "qmd_computerscored" : "Yes"
+    }
+}

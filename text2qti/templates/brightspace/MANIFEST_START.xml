@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest identifier="{manifest_identifier}" 
+  xmlns="http://www.imsglobal.org/xsd/imsccv1p3/imscp_v1p1" 
+  xmlns:lomr="http://ltsc.ieee.org/xsd/imsccv1p3/LOM/resource" 
+  xmlns:lomm="http://ltsc.ieee.org/xsd/imsccv1p3/LOM/manifest" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://ltsc.ieee.org/xsd/imsccv1p3/LOM/resource 
+  http://www.imsglobal.org/profile/cc/ccv1p3/LOM/ccv1p3_lomresource_v1p0.xsd 
+  http://www.imsglobal.org/xsd/imsccv1p3/imscp_v1p1 
+  http://www.imsglobal.org/profile/cc/ccv1p3/ccv1p3_imscp_v1p2_v1p0.xsd 
+  http://ltsc.ieee.org/xsd/imsccv1p3/LOM/manifest http://www.imsglobal.org/profile/cc/ccv1p3/LOM/ccv1p3_lommanifest_v1p0.xsd">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.3.0</schemaversion>
+    <lomm:lom>
+      <lomm:general>
+        <lomm:title>
+          <lomm:string language="en-US">Faculty Sandbox 0050903</lomm:string>
+        </lomm:title>
+      </lomm:general>
+      <lomm:lifeCycle>
+        <lomm:contribute>
+          <lomm:date>
+            <lomm:dateTime>{date}</lomm:dateTime>
+          </lomm:date>
+        </lomm:contribute>
+      </lomm:lifeCycle>
+    </lomm:lom>
+  </metadata>
+  <organizations>
+    <organization identifier="id914adfc-bfe3-4d87-b2bb-d1a19aeaa215" structure="rooted-hierarchy">
+      <item identifier="id09a6c3a-cae8-44c8-a65e-a20a86120418" />
+      <metadata>
+        <lomm:lom />
+      </metadata>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="{assessment_identifier}" type="imsqti_xmlv1p2/imscc_xmlv1p3/assessment">
+      <file href="{assessment_identifier}/{assessment_identifier}.xml"/>
+      <dependency identifierref="{dependency_identifier}"/>
+    </resource>
