@@ -9,6 +9,7 @@
 
 
 import atexit
+import base64
 import hashlib
 import json
 import pathlib
@@ -117,8 +118,29 @@ class Text2qtiImagePattern(ImageInlineProcessor):
             node.attrib['src'] = image.src_path
         return node, start, end
 
+class Text2qtiBase64ImagePattern(ImageInlineProcessor):
+    '''
+    Custom image processor for Python-Markdown that converts images to base64
+    and also accumulates all image data for QTI inclusion.
+    '''
+    def __init__(self, pattern_re, markdown_md, text2qti_md):
+        super().__init__(pattern_re, markdown_md)
+        self.text2qti_md = text2qti_md
 
-
+    def handleMatch(self, match, data):
+        node, start, end = super().handleMatch(match, data)
+        src = node.attrib.get('src')
+        if src and not any(src.startswith(x) for x in ('http://', 'https://')):
+            src_path = pathlib.Path(src).expanduser()
+            try:
+                data = src_path.read_bytes()
+            except FileNotFoundError:
+                raise Text2qtiError(f'File "{src_path}" does not exist')
+            except PermissionError as e:
+                raise Text2qtiError(f'File "{src_path}" cannot be read due to permission error:\n{e}')
+            base64image = base64.b64encode(data).decode('ascii')
+            node.attrib['src'] = 'data:image/jpeg;base64,{}'.format(base64image)
+        return node, start, end
 
 class Markdown(object):
     r'''
@@ -135,7 +157,10 @@ class Markdown(object):
         self.config = config
 
         markdown_processor = markdown.Markdown(extensions=md_extensions)
-        markdown_image_processor = Text2qtiImagePattern(IMAGE_LINK_RE, markdown_processor, self)
+        if config is not None and config['images_base64']:
+            markdown_image_processor = Text2qtiBase64ImagePattern(IMAGE_LINK_RE, markdown_processor, self)
+        else:
+            markdown_image_processor = Text2qtiImagePattern(IMAGE_LINK_RE, markdown_processor, self)
         markdown_processor.inlinePatterns.register(markdown_image_processor, 'image_link', 150)
         self.markdown_processor = markdown_processor
 
