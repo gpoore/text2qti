@@ -67,6 +67,8 @@ def main():
 
     file_path = pathlib.Path(args.file).expanduser()
     file_path_abs = file_path.absolute()
+    if file_path.is_dir():
+        raise Text2qtiError(f'File "{file_path}" is a directory, not a file')
     try:
         text = file_path.read_text(encoding='utf-8-sig')  # Handle BOM for Windows
     except FileNotFoundError:
